@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import Input from "../../../components/Input";
+import Input from "../../../components/input";
 import PasswordInput from "../../../components/password-input";
-import Button from "../../../components/Button";
+import Button from "../../../components/button";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
