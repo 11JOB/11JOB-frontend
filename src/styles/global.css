@@ -1,0 +1,128 @@
+@import "tailwindcss";
+/* @import "./base.css";
+@import "./components.css";
+@import "./utilities.css"; */
+
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme {
+  /* Font sizes */
+  --text-cap2: 11px;
+  --text-cap1: 12px;
+  --text-body4: 13px;
+  --text-body3: 14px;
+  --text-body2: 15px;
+  --text-body1: 16px;
+  --text-title3: 18px;
+  --text-title2: 20px;
+  --text-title1: 28px;
+
+  /* Font weights */
+  --font-weight-r: 450;
+  --font-weight-m: 550;
+  --font-weight-b: 650;
+  --font-weight-eb: 750;
+
+  /* Colors - Gray Scale */
+  --color-gray-scale-black-01: #111111;
+  --color-gray-scale-dark-gray-02: #303030;
+  --color-gray-scale-dark-gray-03: #505050;
+  --color-gray-scale-dark-gray-04: #707070;
+  --color-gray-scale-dark-gray-05: #909090;
+  --color-gray-scale-light-gray-06: #bbbbc0;
+  --color-gray-scale-light-gray-07: #e1e1e1;
+  --color-gray-scale-light-gray-08: #e5e5e9;
+  --color-gray-scale-light-gray-09: #ebebec;
+  --color-gray-scale-light-gray-10: #f1f1f3;
+  --color-gray-scale-light-gray-11: #f4f4f6;
+  --color-gray-scale-light-gray-12: #f5f5f7;
+  --color-gray-scale-white-13: #ffffff;
+
+  /* Colors - Main */
+  --color-main-l-01: #eb4600;
+  --color-main-l-02: #ff7236;
+  --color-main-l-03: #ffb292;
+  --color-main-background-main-01: #fe5209;
+  --color-main-background-main-02: #ff7236;
+  --color-main-background-main-03: #ff8c5b;
+  --color-main-background-sub-01: #ffb66e;
+  --color-main-background-sub-02: #ffe4cb;
+  --color-main-background-sub-03: #fff3e7;
+
+  /* Colors - Font */
+  --color-font-black-01: #111111;
+  --color-font-dark-gray-02: #303030;
+  --color-font-dark-gray-03: #707070;
+  --color-font-dark-gray-04: #909090;
+  --color-font-white-05: #ffffff;
+
+  /* Colors - Active */
+  --color-active-line-black-01: #303030;
+  --color-active-line-dark-gray-02: #707070;
+  --color-active-line-light-gray-03: #bbbbc0;
+  --color-active-line-light-gray-04: #e1e1e1;
+  --color-active-line-light-gray-05: #f1f1f3;
+
+  --color-active-background-black-01: #111111;
+  --color-active-background-dark-gray-02: #303030;
+  --color-active-background-dark-gray-03: #505050;
+  --color-active-background-light-gray-04: #e5e5e9;
+  --color-active-background-light-gray-05: #ebebec;
+  --color-active-background-light-gray-06: #f5f5f7;
+  --color-active-background-white-07: #ffffff;
+
+  /* Colors - Static */
+  --color-static-line-light-gray-01: #e1e1e1;
+  --color-static-line-light-gray-02: #f1f1f3;
+  --color-static-background-light-gray-01: #f1f1f3;
+  --color-static-background-light-gray-02: #f4f4f6;
+  --color-static-background-white-03: #ffffff;
+
+  /* Colors - Green */
+  --color-green-background-01: #55d332;
+  --color-green-background-02: #d5f3ca;
+  --color-green-background-03: #ebfee4;
+  --color-green-line-01: #1b7d00;
+  --color-green-line-02: #bfe1b3;
+
+  /* Colors - Red */
+  --color-red-background-01: #f92626;
+  --color-red-background-02: #ffdcdc;
+  --color-red-background-03: #fff3f3;
+  --color-red-line-01: #de0000;
+
+  --color-red-line-02: #fcc6c6;
+  /* Colors - Yellow */
+  --color-yellow-background-01: #ffc31d;
+  --color-yellow-background-02: #fce9b4;
+  --color-yellow-background-03: #fff9e9;
+  --color-yellow-line-01: #a56100;
+  --color-yellow-line-02: #f8d38f;
+
+  /* Box Shadows */
+  --shadow-toggle-button: 0px 1px 1px 0px rgba(17, 17, 17, 0.24);
+  --shadow-button-regular-default: 0px 1px 2px 0px rgba(17, 17, 17, 0.12);
+  --shadow-button-regular-hover: 0px 1px 2px 0px rgba(17, 17, 17, 0.24);
+  --shadow-button-big-regular: 0 1px 4px 0 rgba(17, 17, 17, 0.12);
+  --shadow-button-big-hover: 0 1px 4px 0 rgba(17, 17, 17, 0.24);
+  --shadow-molecule-default: 0 1px 2px 0 rgba(17, 17, 17, 0.12);
+  --shadow-molecule-hover: 0 1px 4px 0 rgba(17, 17, 17, 0.36);
+  --shadow-organism-default: 0 1px 4px 0 rgba(17, 17, 17, 0.12);
+  --shadow-organism-hover: 0 1px 6px 0 rgba(17, 17, 17, 0.36);
+  --shadow-organism-static: 0 1px 4px 0 rgba(17, 17, 17, 0.04);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Pretendard Variable;
+}
+
+button {
+  cursor: pointer;
+}
