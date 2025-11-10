@@ -12,9 +12,11 @@ import {
   Zap,
   ClipboardList,
   Link,
+  X,
+  Calendar,
 } from "lucide-react";
 
-// --- 1. 타입 정의 (등록 페이지와 일치시킴) ---
+// --- 1. 타입 정의 ---
 
 // 1.1. 개인 정보 상태 타입
 interface ProfileState {
@@ -39,7 +41,7 @@ interface EducationCareerActivity extends BaseDetailItem {
   entryDate: string; // YYYY-MM
   exitDate: string | "재직 중"; // YYYY-MM
   title?: never;
-  detail: string; // 조회 페이지에서는 detail을 필수로 가정
+  detail: string;
 }
 
 interface Introduction extends BaseDetailItem {
@@ -65,20 +67,17 @@ interface PortfolioSection {
   items: DetailItem[];
 }
 
-// 1.5. 타입 가드 함수 (검색 로직을 위해 필요)
-// item이 EducationCareerActivity (학력/경력/활동) 타입인지 확인
+// 1.5. 타입 가드 함수
 const isEducationCareerActivity = (
   item: DetailItem
 ): item is EducationCareerActivity => {
   return (item as EducationCareerActivity).institution !== undefined;
 };
 
-// item이 Introduction (자기소개서 링크) 타입인지 확인
 const isIntroduction = (item: DetailItem): item is Introduction => {
   return (item as Introduction).link !== undefined;
 };
 
-// item이 Certification (자격증/스킬) 타입인지 확인
 const isCertification = (item: DetailItem): item is Certification => {
   return (item as Certification).acquisitionDate !== undefined;
 };
@@ -89,7 +88,7 @@ const mockProfile: ProfileState = {
   email: "sejong.kim@example.com",
   phone: "010-5678-5678",
   address: "서울특별시 광진구 군자로 121",
-  profileImage: "https://placehold.co/150x150/0000FF/FFFFFF?text=Sejong",
+  profileImage: "https://placehold.co/150x150/00796B/FFFFFF?text=Sejong",
 };
 
 const mockPortfolio: PortfolioSection[] = [
@@ -185,54 +184,63 @@ const mockPortfolio: PortfolioSection[] = [
 
 const DetailItemCard: React.FC<{ item: DetailItem }> = ({ item }) => {
   let content;
+  let cardStyle =
+    "p-4 rounded-xl mb-4 transition-all duration-300 hover:shadow-md";
 
   if (isEducationCareerActivity(item)) {
-    // 학력/경력/활동
+    // 학력/경력/활동 (Timeline Style)
+    cardStyle += " bg-white border border-gray-200 shadow-sm";
     content = (
       <>
-        <h3 className="text-lg font-semibold text-gray-800">
-          {item.institution}
-        </h3>
-        <p className="text-sm text-gray-500 mb-2">
-          {item.entryDate} ~ {item.exitDate}
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="text-xl font-bold text-gray-800 break-words pr-2">
+            {item.institution}
+          </h3>
+          <div className="flex items-center text-sm text-gray-500 font-medium whitespace-nowrap bg-teal-50 p-1 px-2 rounded-full">
+            <Calendar size={14} className="mr-1 text-teal-600" />
+            {item.entryDate} ~ {item.exitDate}
+          </div>
+        </div>
+        <p className="text-gray-700 whitespace-pre-line text-base">
+          {item.detail}
         </p>
-        <p className="text-gray-700 whitespace-pre-line">{item.detail}</p>
       </>
     );
   } else if (isIntroduction(item)) {
-    // 자기소개서/링크
+    // 자기소개서/링크 (Link Style)
+    cardStyle +=
+      " bg-blue-50 border border-blue-200 hover:bg-blue-100 shadow-sm";
     content = (
       <>
-        <h3 className="text-lg font-semibold text-blue-600 hover:underline">
-          {item.title}
-        </h3>
+        <h3 className="text-lg font-semibold text-blue-700">{item.title}</h3>
         <a
           href={item.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-blue-500 hover:text-blue-700 flex items-center"
+          className="text-sm text-blue-500 hover:text-blue-600 flex items-center mt-1"
         >
-          {item.link}
+          <Link size={16} className="mr-1 text-blue-500" />
+          <span className="truncate">{item.link}</span>
         </a>
       </>
     );
   } else if (isCertification(item)) {
-    // 자격증/스킬
+    // 자격증/스킬 (Badge Style)
+    cardStyle += " bg-teal-50 border border-teal-200 shadow-sm";
     content = (
-      <>
-        <h3 className="text-lg font-semibold text-gray-800">{item.title}</h3>
-        <p className="text-sm text-gray-500">취득일: {item.acquisitionDate}</p>
-      </>
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-teal-800">{item.title}</h3>
+        <div className="text-xs text-teal-600 bg-teal-100 py-1 px-3 rounded-full font-medium whitespace-nowrap">
+          {item.acquisitionDate}
+        </div>
+      </div>
     );
   } else {
-    content = <p className="text-red-500">알 수 없는 항목 유형입니다.</p>;
+    cardStyle += " bg-red-100 border border-red-300";
+    content = <p className="text-red-600">알 수 없는 항목 유형입니다.</p>;
   }
 
-  return (
-    <div className="bg-gray-50 p-4 rounded-xl shadow-inner mb-3 border border-gray-200">
-      {content}
-    </div>
-  );
+  return <div className={cardStyle}>{content}</div>;
 };
 
 // --- 4. 메인 컴포넌트 ---
@@ -252,7 +260,7 @@ export default function PortfolioView() {
       .map((section) => ({
         ...section,
         items: section.items.filter((item) => {
-          // 1. EducationCareerActivity 타입 항목 검색 (institution, detail)
+          // 1. EducationCareerActivity 타입 항목 검색 (institution, detail, dates)
           if (isEducationCareerActivity(item)) {
             const institutionMatch =
               item.institution &&
@@ -260,7 +268,11 @@ export default function PortfolioView() {
             const detailMatch =
               item.detail &&
               item.detail.toLowerCase().includes(lowerSearchTerm);
-            return institutionMatch || detailMatch;
+            const dateMatch =
+              item.entryDate.includes(lowerSearchTerm) ||
+              item.exitDate.includes(lowerSearchTerm);
+
+            return institutionMatch || detailMatch || dateMatch;
           }
 
           // 2. Introduction 타입 항목 검색 (title, link)
@@ -272,11 +284,12 @@ export default function PortfolioView() {
             return titleMatch || linkMatch;
           }
 
-          // 3. Certification 타입 항목 검색 (title)
+          // 3. Certification 타입 항목 검색 (title, date)
           if (isCertification(item)) {
             const titleMatch =
               item.title && item.title.toLowerCase().includes(lowerSearchTerm);
-            return titleMatch;
+            const dateMatch = item.acquisitionDate.includes(lowerSearchTerm);
+            return titleMatch || dateMatch;
           }
 
           return false;
@@ -286,90 +299,135 @@ export default function PortfolioView() {
   }, [searchTerm]);
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-          포트폴리오 조회
-        </h1>
-        <p className="text-gray-500 mb-8">
-          <span className="font-bold">{profile.name}</span> 님의
-          포트폴리오입니다.
-        </p>
-
-        {/* 검색창 */}
-        <div className="mb-8 p-4 bg-white rounded-xl shadow-lg border border-gray-100 flex items-center">
-          <Search className="text-gray-400 mr-3" size={20} />
-          <input
-            type="text"
-            placeholder="포트폴리오 내용을 검색하세요 (예: React, 세종대학교)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-2 text-gray-700 outline-none"
-          />
+    // 배경색 및 최소 높이 설정
+    <div className="p-4 md:p-8 bg-gray-100 min-h-screen font-sans">
+      <div className="max-w-6xl mx-auto">
+        {/* 헤더 */}
+        <div className="mb-6">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
+            김세종 님의 포트폴리오
+          </h1>
+          <p className="text-xl text-gray-500">
+            취업 및 프로젝트 진행을 위한 상세 이력
+          </p>
         </div>
 
-        {/* 1. 개인 정보 */}
-        <div className="bg-white p-6 rounded-2xl shadow-xl mb-8">
-          <div className="flex items-center space-x-6">
-            <img
-              src={
-                profile.profileImage ||
-                "https://placehold.co/150x150/EEEEEE/333333?text=Profile"
-              }
-              alt="프로필 이미지"
-              className="w-24 h-24 object-cover rounded-full shadow-md"
-            />
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900">
-                {profile.name}
-              </h2>
-              <div className="mt-2 space-y-1">
-                <div className="flex items-center text-gray-600 text-sm">
-                  <Mail size={16} className="mr-2 text-blue-500" />{" "}
-                  {profile.email}
+        {/* 메인 레이아웃 (반응형: 모바일은 1단, 데스크탑은 2단) */}
+        <div className="md:grid md:grid-cols-3 md:gap-8">
+          {/* 좌측: 개인 정보 (md 이상에서 sticky) */}
+          <div className="md:col-span-1 mb-8 md:mb-0">
+            <div className="sticky top-8">
+              {/* 개인 정보 카드 */}
+              <div className="bg-white p-6 rounded-2xl shadow-xl border-t-4 border-teal-500">
+                <div className="flex flex-col items-center pb-4 border-b border-gray-100">
+                  <img
+                    src={
+                      profile.profileImage ||
+                      "https://placehold.co/120x120/CCCCCC/333333?text=Profile"
+                    }
+                    alt="프로필 이미지"
+                    className="w-32 h-32 object-cover rounded-full shadow-lg border-4 border-white"
+                  />
+                  <h2 className="text-2xl font-bold text-gray-900 mt-4">
+                    {profile.name}
+                  </h2>
+                  <p className="text-sm text-teal-600 mt-1 font-medium">
+                    프론트엔드 개발자
+                  </p>
                 </div>
-                <div className="flex items-center text-gray-600 text-sm">
-                  <Phone size={16} className="mr-2 text-blue-500" />{" "}
-                  {profile.phone}
+
+                {/* 연락처 정보 */}
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center text-gray-700 text-sm">
+                    <Mail
+                      size={18}
+                      className="mr-3 text-teal-500 flex-shrink-0"
+                    />{" "}
+                    {profile.email}
+                  </div>
+                  <div className="flex items-center text-gray-700 text-sm">
+                    <Phone
+                      size={18}
+                      className="mr-3 text-teal-500 flex-shrink-0"
+                    />{" "}
+                    {profile.phone}
+                  </div>
+                  <div className="flex items-start text-gray-700 text-sm">
+                    <MapPin
+                      size={18}
+                      className="mr-3 text-teal-500 flex-shrink-0 mt-0.5"
+                    />{" "}
+                    {profile.address}
+                  </div>
                 </div>
-                <div className="flex items-center text-gray-600 text-sm">
-                  <MapPin size={16} className="mr-2 text-blue-500" />{" "}
-                  {profile.address}
+              </div>
+
+              {/* 검색창을 좌측에 배치 */}
+              <div className="mt-6 p-4 bg-white rounded-2xl shadow-md border border-gray-200">
+                <div className="flex items-center relative">
+                  <Search className="text-gray-400 absolute left-3" size={20} />
+                  <input
+                    type="text"
+                    placeholder="전체 항목 검색 (예: React, 세종)"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2 text-gray-700 outline-none rounded-lg focus:ring-2 focus:ring-teal-400 border border-gray-300"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 p-1 text-gray-500 hover:text-gray-700"
+                      aria-label="검색어 초기화"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* 2. 상세 포트폴리오 섹션 */}
-        {filteredPortfolio.length === 0 && searchTerm ? (
-          <div className="text-center p-12 bg-white rounded-2xl shadow-lg text-gray-500">
-            <Search size={30} className="mx-auto mb-3" />
-            <p>검색 결과가 없습니다. 다른 검색어로 시도해 보세요.</p>
-          </div>
-        ) : (
-          filteredPortfolio.map((section) => {
-            const Icon = section.icon;
-            return (
-              <div
-                key={section.title}
-                className="bg-white p-6 rounded-2xl shadow-xl mb-8"
-              >
-                <div className="flex items-center border-b pb-3 mb-4">
-                  <Icon size={24} className="mr-3 text-indigo-600" />
-                  <h2 className="text-xl font-bold text-gray-800">
-                    {section.title}
-                  </h2>
-                </div>
-                <div>
-                  {section.items.map((item) => (
-                    <DetailItemCard key={item.id} item={item} />
-                  ))}
-                </div>
+          {/* 우측: 상세 포트폴리오 섹션 */}
+          <div className="md:col-span-2">
+            {filteredPortfolio.length === 0 && searchTerm ? (
+              <div className="text-center p-12 bg-white rounded-2xl shadow-lg text-gray-500 border-2 border-dashed border-gray-300">
+                <Search size={30} className="mx-auto mb-3 text-gray-400" />
+                <p className="text-lg font-semibold">검색 결과가 없습니다.</p>
+                <p>
+                  <span className="font-medium text-teal-600">
+                    &apos;{searchTerm}&lsquo;
+                  </span>
+                  에 해당하는 내용을 찾을 수 없습니다.
+                </p>
               </div>
-            );
-          })
-        )}
+            ) : (
+              // 포트폴리오 섹션 리스트
+              filteredPortfolio.map((section) => {
+                const Icon = section.icon;
+                return (
+                  <div
+                    key={section.title}
+                    className="mb-10 p-6 bg-gray-50 rounded-2xl shadow-inner border border-gray-200"
+                  >
+                    {/* 섹션 제목 */}
+                    <div className="flex items-center pb-3 mb-4 border-b-2 border-teal-300">
+                      <Icon size={28} className="mr-3 text-teal-600" />
+                      <h2 className="text-2xl font-bold text-gray-800">
+                        {section.title}
+                      </h2>
+                    </div>
+                    {/* 섹션 항목 */}
+                    <div className="space-y-4">
+                      {section.items.map((item) => (
+                        <DetailItemCard key={item.id} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

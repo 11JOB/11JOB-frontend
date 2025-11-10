@@ -1,24 +1,14 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Plus, Trash2, Save } from "lucide-react";
-
-// --- Firebase Imports Placeholder (실제 앱 ID와 토큰 사용) ---
-// 이 변수들은 런타임 환경에서 제공됩니다.
-// const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-// const firebaseConfig =
-//   typeof __firebase_config !== "undefined" ? JSON.parse(__firebase_config) : {};
-
-/* // NOTE: Firebase를 실제로 사용하려면 아래 주석을 해제하고,
-// 프로젝트 상태 관리 및 Firestore 연동 로직을 추가해야 합니다.
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from 'firebase/firestore';
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-*/
+import {
+  Plus,
+  Trash2,
+  Save,
+  Calendar,
+  LinkIcon,
+  AlignLeft,
+} from "lucide-react";
 
 // --- 1. 타입 정의 ---
 
@@ -42,8 +32,8 @@ interface ProjectItem {
 const createNewProject = (): ProjectItem => ({
   id: crypto.randomUUID(), // 임시 ID
   title: "",
-  startDate: { year: "YYYY", month: "MM", day: "DD" },
-  endDate: { year: "YYYY", month: "MM", day: "DD" },
+  startDate: { year: "", month: "", day: "" },
+  endDate: { year: "", month: "", day: "" },
   description: "",
   link: "",
   isNew: true,
@@ -51,41 +41,57 @@ const createNewProject = (): ProjectItem => ({
 
 // --- 2. 서브 컴포넌트: 날짜 입력 그룹 ---
 
+const DateInput: React.FC<{
+  placeholder: string;
+  value: string;
+  maxLength: number;
+  onChange: (value: string) => void;
+  className?: string;
+}> = ({ placeholder, value, maxLength, onChange, className = "" }) => (
+  <input
+    type="text"
+    placeholder={placeholder}
+    value={value}
+    onChange={(e) =>
+      onChange(e.target.value.replace(/[^0-9]/g, "").slice(0, maxLength))
+    }
+    className={`w-full p-2 border border-gray-300 rounded-md text-center focus:ring-indigo-500 focus:border-indigo-500 text-sm transition ${className}`}
+    maxLength={maxLength}
+  />
+);
+
 const DateInputGroup: React.FC<{
   date: DateFields;
   onChange: (fields: Partial<DateFields>) => void;
   label: string;
 }> = ({ date, onChange, label }) => (
-  <div className="flex items-center space-x-1">
-    <span className="text-sm font-medium text-gray-700 w-12 text-right">
-      {label}:
-    </span>
-    <input
-      type="text"
-      placeholder="YYYY"
-      value={date.year === "YYYY" ? "" : date.year}
-      onChange={(e) => onChange({ year: e.target.value.slice(0, 4) })}
-      className="w-16 p-2 border border-gray-300 rounded-lg text-center focus:ring-blue-500 focus:border-blue-500 text-sm"
-      maxLength={4}
-    />
-    <span className="text-gray-500">-</span>
-    <input
-      type="text"
-      placeholder="MM"
-      value={date.month === "MM" ? "" : date.month}
-      onChange={(e) => onChange({ month: e.target.value.slice(0, 2) })}
-      className="w-12 p-2 border border-gray-300 rounded-lg text-center focus:ring-blue-500 focus:border-blue-500 text-sm"
-      maxLength={2}
-    />
-    <span className="text-gray-500">-</span>
-    <input
-      type="text"
-      placeholder="DD"
-      value={date.day === "DD" ? "" : date.day}
-      onChange={(e) => onChange({ day: e.target.value.slice(0, 2) })}
-      className="w-12 p-2 border border-gray-300 rounded-lg text-center focus:ring-blue-500 focus:border-blue-500 text-sm"
-      maxLength={2}
-    />
+  <div className="flex flex-col space-y-1">
+    <label className="text-xs font-semibold text-gray-500 flex items-center">
+      <Calendar size={12} className="mr-1 text-indigo-400" />
+      {label}
+    </label>
+    <div className="flex items-center space-x-1">
+      <DateInput
+        placeholder="YYYY"
+        value={date.year}
+        maxLength={4}
+        onChange={(year) => onChange({ year })}
+      />
+      <span className="text-gray-400">/</span>
+      <DateInput
+        placeholder="MM"
+        value={date.month}
+        maxLength={2}
+        onChange={(month) => onChange({ month })}
+      />
+      <span className="text-gray-400">/</span>
+      <DateInput
+        placeholder="DD"
+        value={date.day}
+        maxLength={2}
+        onChange={(day) => onChange({ day })}
+      />
+    </div>
   </div>
 );
 
@@ -103,37 +109,61 @@ const ProjectItemCard: React.FC<{
       onUpdate(item.id, { [key]: { ...item[key], ...fields } });
     };
 
+  // 모든 날짜 필드가 비어있지 않은지 검사
+  const isDateValid = (d: DateFields) =>
+    d.year.length === 4 && d.month.length > 0 && d.day.length > 0;
+
   const isFilled =
-    item.title &&
-    item.description &&
-    item.startDate.year.length === 4 &&
-    item.endDate.year.length === 4;
+    item.title.trim().length > 0 &&
+    item.description.trim().length > 0 &&
+    isDateValid(item.startDate) &&
+    isDateValid(item.endDate);
+
+  const InputField: React.FC<{
+    label: string;
+    placeholder: string;
+    value: string;
+    field: keyof ProjectItem;
+    icon: React.ReactNode;
+    type?: string;
+  }> = ({ label, placeholder, value, field, icon, type = "text" }) => (
+    <div className="mb-4">
+      <label className="text-sm font-medium text-gray-700 block mb-1 flex items-center">
+        {icon}
+        <span className="ml-1">{label}</span>
+      </label>
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onUpdate(item.id, { [field]: e.target.value })}
+        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm"
+      />
+    </div>
+  );
 
   return (
-    <div className="relative bg-white p-6 rounded-xl shadow-lg mb-6 border border-gray-200">
-      {/* 타이틀 및 날짜 */}
-      <div className="flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0 mb-4 items-start">
-        {/* 이미지 Placeholder (스크린샷에 있는 작은 네모) */}
-        <div className="w-20 h-20 bg-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center text-gray-500 text-xs">
+    <div className="relative bg-white p-6 md:p-8 rounded-2xl shadow-xl hover:shadow-2xl transition duration-300 mb-6 border border-indigo-100">
+      {/* 타이틀 및 Placeholder */}
+      <div className="flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0 mb-6 items-start">
+        {/* 이미지 Placeholder (카드 상단 디자인 요소) */}
+        <div className="w-20 h-20 bg-indigo-500 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-md">
           Image
         </div>
 
         <div className="flex-1 w-full">
-          <label className="text-xs font-semibold text-gray-500 mb-1 block">
-            프로젝트 제목
-          </label>
-          <input
-            type="text"
-            placeholder="제목을 입력하세요"
+          <InputField
+            label="프로젝트 제목"
+            placeholder="제목을 입력하세요 (예: 커뮤니티 웹 서비스 개발)"
             value={item.title}
-            onChange={(e) => onUpdate(item.id, { title: e.target.value })}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+            field="title"
+            icon={<AlignLeft size={16} className="text-indigo-600" />}
           />
         </div>
       </div>
 
       {/* 날짜 입력 (Start ~ End) */}
-      <div className="flex flex-col space-y-3 mb-4 p-3 border-y border-gray-100">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
         <DateInputGroup
           label="시작 일자"
           date={item.startDate}
@@ -148,38 +178,40 @@ const ProjectItemCard: React.FC<{
 
       {/* 설명 (Description) */}
       <div className="mb-4">
-        <label className="text-xs font-semibold text-gray-500 mb-1 block">
-          상세 설명
+        <label className="text-sm font-medium text-gray-700 block mb-1 flex items-center">
+          <AlignLeft size={16} className="text-indigo-600" />
+          <span className="ml-1">상세 설명</span>
         </label>
         <textarea
-          placeholder="진행한 프로젝트에 대한 상세 내용을 입력하세요."
+          placeholder="진행한 프로젝트에 대한 상세 내용을 입력하세요. (사용 기술, 역할, 성과 등)"
           value={item.description}
           onChange={(e) => onUpdate(item.id, { description: e.target.value })}
-          rows={4}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+          rows={5}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 resize-y transition shadow-sm"
         />
       </div>
 
       {/* 링크 (Link) */}
       <div className="mb-6">
-        <label className="text-xs font-semibold text-gray-500 mb-1 block">
-          링크
+        <label className="text-sm font-medium text-gray-700 block mb-1 flex items-center">
+          <LinkIcon size={16} className="text-indigo-600" />
+          <span className="ml-1">프로젝트 링크 (선택 사항)</span>
         </label>
         <input
           type="url"
-          placeholder="프로젝트 링크 (GitHub, Demo URL 등)"
+          placeholder="GitHub, Demo URL, Notion 등 연결 링크"
           value={item.link}
           onChange={(e) => onUpdate(item.id, { link: e.target.value })}
-          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm"
         />
       </div>
 
       {/* 액션 버튼 */}
-      <div className="flex justify-end space-x-3">
+      <div className="flex justify-end space-x-3 border-t pt-4">
         {/* 삭제 버튼 */}
         <button
           onClick={() => onDelete(item.id)}
-          className="flex items-center space-x-1 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition duration-150 shadow-md"
+          className="flex items-center space-x-1 px-4 py-2 text-sm font-medium text-red-600 bg-red-100 rounded-xl hover:bg-red-200 transition duration-150 shadow-md transform hover:scale-[1.02]"
         >
           <Trash2 size={16} />
           <span>삭제</span>
@@ -189,14 +221,14 @@ const ProjectItemCard: React.FC<{
         <button
           onClick={() => onSave(item)}
           disabled={!isFilled}
-          className={`flex items-center space-x-1 px-4 py-2 text-sm font-bold rounded-lg transition duration-150 shadow-md ${
+          className={`flex items-center space-x-1 px-4 py-2 text-sm font-bold rounded-xl transition duration-150 shadow-lg transform hover:scale-[1.02] ${
             isFilled
               ? "bg-indigo-600 text-white hover:bg-indigo-700"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
         >
           <Save size={16} />
-          <span>{item.isNew ? "저장" : "업데이트"}</span>
+          <span>{item.isNew ? "저장하기" : "업데이트"}</span>
         </button>
       </div>
     </div>
@@ -208,28 +240,6 @@ const ProjectItemCard: React.FC<{
 export default function ProjectRegisterPage() {
   const [projects, setProjects] = useState<ProjectItem[]>([createNewProject()]);
   const [isSaving, setIsSaving] = useState(false);
-
-  /* // NOTE: 실제 Firebase 인증 및 데이터 로딩 로직을 여기에 구현해야 합니다.
-  useEffect(() => {
-    // 1. 사용자 인증 (__initial_auth_token 사용)
-    const authenticate = async () => {
-      try {
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
-        if (initialAuthToken) {
-          await signInWithCustomToken(auth, initialAuthToken);
-        } else {
-          await signInAnonymously(auth);
-        }
-        const userId = auth.currentUser?.uid || 'anonymous';
-        // 2. 데이터 불러오기 (onSnapshot)
-        // ... (Firestore 쿼리 및 onSnapshot 로직 추가)
-      } catch (error) {
-        console.error("Firebase authentication error:", error);
-      }
-    };
-    authenticate();
-  }, []);
-  */
 
   // 프로젝트 항목 추가
   const handleAddProject = useCallback(() => {
@@ -248,7 +258,6 @@ export default function ProjectRegisterPage() {
 
   // 프로젝트 항목 삭제
   const handleDeleteProject = useCallback((id: string) => {
-    // NOTE: 실제 앱에서는 deleteDoc(doc(db, ...)) 호출 필요
     setProjects((prev) => prev.filter((item) => item.id !== id));
     console.log(`[Data Action] Project ID ${id} 삭제 요청`);
   }, []);
@@ -263,7 +272,6 @@ export default function ProjectRegisterPage() {
     setIsSaving(true);
     try {
       // NOTE: 실제 앱에서는 setDoc/addDoc 호출 필요
-      // await setDoc(doc(db, `/artifacts/${appId}/users/${userId}/projects`, project.id), { ...project, timestamp: serverTimestamp() });
       setProjects((prev) =>
         prev.map((item) =>
           item.id === project.id ? { ...project, isNew: false } : item
@@ -278,14 +286,17 @@ export default function ProjectRegisterPage() {
   }, []);
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-8 bg-slate-50 min-h-screen font-sans">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-          프로젝트 등록
-        </h1>
-        <p className="text-gray-500 mb-8">
-          진행했던 프로젝트를 등록하고 관리해 보세요.
-        </p>
+        {/* 헤더 */}
+        <div className="mb-10 p-6 bg-white rounded-xl shadow-md border-t-4 border-indigo-600">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-1 tracking-tight">
+            프로젝트 등록 및 관리
+          </h1>
+          <p className="text-gray-500 text-lg">
+            당신의 주요 성과와 프로젝트를 포트폴리오에 등록해보세요.
+          </p>
+        </div>
 
         {/* 프로젝트 목록 */}
         <div className="space-y-6">
@@ -304,20 +315,22 @@ export default function ProjectRegisterPage() {
         <div className="mt-8 text-center">
           <button
             onClick={handleAddProject}
-            className="flex items-center justify-center space-x-2 text-indigo-600 font-bold border-2 border-dashed border-indigo-200 hover:bg-indigo-100 transition duration-150 rounded-lg w-full p-4"
+            className="flex items-center justify-center space-x-2 text-indigo-600 font-bold border-2 border-dashed border-indigo-300 bg-indigo-50 hover:bg-indigo-100 transition duration-150 rounded-xl w-full p-4 text-lg shadow-inner transform hover:scale-[1.005]"
             disabled={isSaving}
           >
-            <Plus size={20} />
-            <span>추가</span>
+            <Plus size={24} />
+            <span>새 프로젝트 추가</span>
           </button>
         </div>
       </div>
 
       {isSaving && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl flex items-center space-x-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
-            <p className="text-indigo-600">저장 중...</p>
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white p-8 rounded-xl shadow-2xl flex items-center space-x-4 border border-indigo-200">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+            <p className="text-indigo-600 font-semibold text-lg">
+              데이터 저장 중...
+            </p>
           </div>
         </div>
       )}

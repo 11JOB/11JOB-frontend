@@ -1,105 +1,224 @@
 "use client";
-import { useState } from "react";
 
-const SideBarList = [
+import React, { useState } from "react";
+// Lucide Icons를 사용합니다.
+import {
+  Calendar,
+  Briefcase,
+  FileText,
+  User,
+  ChevronDown,
+  LayoutList,
+} from "lucide-react";
+import clsx from "clsx";
+
+// 메뉴 항목에 대한 타입 정의
+interface SubMenuItem {
+  title: string;
+  link: string;
+}
+
+interface SideBarItem {
+  title: string;
+  icon: React.ElementType; // 아이콘 컴포넌트를 받기 위한 타입
+  link?: string;
+  subMenu?: SubMenuItem[];
+}
+
+// 각 메뉴 항목에 아이콘 컴포넌트를 추가합니다.
+const SideBarList: SideBarItem[] = [
   {
     title: "내 캘린더",
+    icon: Calendar,
     link: "/",
   },
   {
-    title: "일정 관리",
+    title: "취업 공고 및 일정",
+    icon: Briefcase,
     subMenu: [
       {
-        title: "등록",
-        link: "/schedule/new",
+        title: "취업 공고",
+        link: "/list",
       },
       {
-        title: "목록",
-        link: "/schedule/list",
+        title: "내 취업 일정",
+        link: "/view",
       },
     ],
   },
   {
     title: "포트폴리오 관리",
+    icon: FileText,
     subMenu: [
       {
         title: "등록",
-        link: "/portfolio/new",
+        link: "/portfolio/registration",
       },
       {
         title: "조회",
-        link: "/portfolio/list",
+        link: "/portfolio/view",
       },
     ],
   },
   {
     title: "마이페이지",
+    icon: User,
     link: "/mypage",
   },
 ];
 
-export default function Sidebar() {
+// Next.js Link 시뮬레이션을 위한 더미 컴포넌트
+// 실제 Next.js 환경에서는 next/link를 사용하시면 됩니다.
+const CustomLink: React.FC<{
+  href: string;
+  className: string;
+  children: React.ReactNode;
+}> = ({ href, className, children }) => {
+  // Canvas 환경에서는 실제 라우팅이 불가능하므로 단순 div와 콘솔 로그로 대체합니다.
+  return (
+    <div
+      onClick={() => console.log(`Navigating to: ${href}`)}
+      className={className}
+    >
+      {children}
+    </div>
+  );
+};
+
+const Sidebar: React.FC = () => {
   // 열려있는 서브 메뉴를 관리하는 상태. 배열의 인덱스를 저장합니다.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  // 서브 메뉴 토글 함수
   const toggleSubMenu = (index: number) => {
-    // 현재 열려있는 메뉴를 다시 클릭하면 닫고, 아니면 새로운 메뉴를 엽니다.
     setOpenIndex(openIndex === index ? null : index);
   };
 
-  return (
-    // 메인 컨테이너 스타일 (이미지 기반: 둥근 모서리, 흰색 배경, 그림자, 고정 폭)
-    <div className="w-64 p-4 bg-white rounded-xl shadow-lg font-sans">
-      <nav className="space-y-4">
-        {SideBarList.map((item, index) => (
-          <div key={index}>
-            {/* 메인 메뉴 항목 (서브 메뉴 유무에 따라 스타일 및 이벤트 변경) */}
-            {item.link ? (
-              // 서브 메뉴가 없는 항목 (단순 링크)
-              <a
-                href={item.link}
-                className="block text-gray-800 text-lg font-semibold hover:text-blue-600 transition duration-150"
-              >
-                {item.title}
-              </a>
-            ) : (
-              // 서브 메뉴가 있는 항목 (클릭 이벤트 추가)
-              <button
-                onClick={() => toggleSubMenu(index)}
-                className="w-full flex justify-between items-center text-gray-800 text-lg font-semibold hover:text-blue-600 transition duration-150 focus:outline-none"
-              >
-                {item.title}
-                {/* 토글 아이콘 (아이콘 라이브러리 미사용 시 텍스트로 대체) */}
-                {/* {openIndex === index ? <FiChevronUp className="w-5 h-5" /> : <FiChevronDown className="w-5 h-5" />} */}
-                {openIndex === index ? "▲" : "▼"}
-              </button>
-            )}
+  // 현재 활성 상태의 Link를 시뮬레이션하기 위한 더미 값
+  // 실제 애플리케이션에서는 next/router 등을 사용하여 현재 경로를 가져와야 합니다.
+  const activeLink = "/view";
 
-            {/* 서브 메뉴 목록 */}
-            {item.subMenu && (
-              <ul
-                // 서브 메뉴 열림/닫힘 상태에 따른 스타일 적용
-                className={`pl-6 mt-1 space-y-1 overflow-hidden transition-all duration-300 ${
-                  openIndex === index
-                    ? "max-h-96 opacity-100"
-                    : "max-h-0 opacity-0"
-                }`}
-              >
-                {item.subMenu.map((subItem, subIndex) => (
-                  <li key={subIndex}>
-                    <a
-                      href={subItem.link}
-                      // 서브 메뉴 스타일: 약간 작은 글꼴, 덜 굵은 글꼴, 들여쓰기된 위치
-                      className="block py-1 text-gray-600 text-base font-medium hover:text-blue-500 transition duration-150"
-                    >
-                      {subItem.title}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+  return (
+    // 메인 컨테이너: 약간 좁은 폭 (w-64), 짙은 배경색, 둥근 모서리, 깊은 그림자
+    <div className="w-64 min-h-screen p-4 bg-gray-900 shadow-2xl font-sans text-white">
+      {/* 사이드바 헤더 / 로고 */}
+      <div className="flex items-center space-x-2 p-3 mb-6 border-b border-gray-700/50">
+        <LayoutList className="text-blue-400" size={24} />
+        <h1 className="text-xl font-bold tracking-wider text-blue-400">
+          MENU{" "}
+        </h1>
+      </div>
+
+      <nav className="space-y-1">
+        {SideBarList.map((item, index) => {
+          const ItemIcon = item.icon;
+
+          // 링크 경로가 활성 상태인지 확인 (서브메뉴는 제외)
+          const isItemActive = item.link === activeLink;
+
+          // 서브 메뉴가 열려 있는지 확인
+          const isOpen = openIndex === index;
+
+          const baseClasses =
+            "flex items-center w-full rounded-lg p-3 text-sm font-semibold transition-all duration-200 cursor-pointer";
+
+          // 메인 메뉴 항목 렌더링 함수
+          const renderItem = (linkProps: boolean, itemLink?: string) => (
+            <div
+              className={clsx(baseClasses, "group", {
+                // 활성화/호버 스타일: 파란색 배경과 밝은 텍스트
+                "bg-blue-600 text-white shadow-md": isItemActive && linkProps,
+                "hover:bg-gray-800 hover:text-blue-400":
+                  !isItemActive || !linkProps,
+                "text-gray-200": !isItemActive && !linkProps,
+              })}
+              onClick={() => {
+                if (item.subMenu) {
+                  toggleSubMenu(index);
+                } else if (itemLink) {
+                  // Link 클릭 시뮬레이션
+                  console.log(`Navigating to: ${itemLink}`);
+                }
+              }}
+            >
+              <ItemIcon
+                size={18}
+                className={clsx(
+                  "mr-3",
+                  isItemActive && linkProps
+                    ? "text-white"
+                    : "text-gray-400 group-hover:text-blue-400"
+                )}
+              />
+              <span className="flex-1">{item.title}</span>
+
+              {/* 토글 아이콘 (서브 메뉴가 있을 때만) */}
+              {item.subMenu && (
+                <ChevronDown
+                  size={16}
+                  className={clsx(
+                    "transition-transform duration-300 text-gray-400",
+                    {
+                      "rotate-180": isOpen, // 열렸을 때 회전
+                    }
+                  )}
+                />
+              )}
+            </div>
+          );
+
+          return (
+            <div key={index}>
+              {/* Link 컴포넌트 시뮬레이션 */}
+              {item.link ? (
+                <CustomLink href={item.link} className="block">
+                  {renderItem(true, item.link)}
+                </CustomLink>
+              ) : (
+                renderItem(false)
+              )}
+
+              {/* 서브 메뉴 목록 */}
+              {item.subMenu && (
+                <ul
+                  // 서브 메뉴 열림/닫힘 상태에 따른 스타일 적용
+                  className={`pl-4 space-y-1 overflow-hidden transition-all duration-300 ${
+                    isOpen
+                      ? "max-h-96 opacity-100 mt-1"
+                      : "max-h-0 opacity-0 mt-0"
+                  }`}
+                >
+                  {item.subMenu.map((subItem, subIndex) => {
+                    const isSubItemActive = subItem.link === activeLink;
+                    return (
+                      <li key={subIndex}>
+                        <CustomLink
+                          href={subItem.link}
+                          className={clsx(
+                            "flex items-center py-2 pl-5 pr-3 text-xs font-medium rounded-lg transition-colors duration-200",
+                            {
+                              "text-blue-400 bg-gray-800 font-semibold":
+                                isSubItemActive,
+                              "text-gray-400 hover:text-blue-300 hover:bg-gray-800":
+                                !isSubItemActive,
+                            }
+                          )}
+                        >
+                          {/* 서브 메뉴 구분자 */}
+                          <span className="w-1 h-1 rounded-full mr-3 bg-gray-600"></span>
+                          {subItem.title}
+                        </CustomLink>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          );
+        })}
       </nav>
     </div>
   );
-}
+};
+
+export default Sidebar;

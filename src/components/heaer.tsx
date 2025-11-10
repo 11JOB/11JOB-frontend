@@ -1,18 +1,66 @@
-export default function Header() {
+"use client";
+import React from "react";
+// Next.js 라우터 대신 시뮬레이션을 위한 더미 함수를 사용합니다.
+// 실제 환경에서는 next/navigation에서 useRouter를 import하여 사용하십시오.
+// Lucide Icons를 사용합니다.
+import { LogOut, User as UserIcon } from "lucide-react";
+// import { useRouter } from "next/navigation"; // 실제 Next.js 환경
+
+// useRouter 시뮬레이션
+const useDummyRouter = () => ({
+  push: (path: string) => console.log(`Navigating to: ${path}`),
+});
+
+interface HeaderProps {
+  userEmail?: string;
+}
+
+export default function Header({
+  userEmail = "testuser@11job.com",
+}: HeaderProps) {
+  const router = useDummyRouter(); // 실제 환경에서는 useRouter();
+
+  const handleLogout = () => {
+    // TODO: 실제 로그아웃 로직 (예: Firebase/Auth 세션 삭제)이 들어갈 자리
+    console.log("Logout attempted.");
+    router.push("/auth"); // 로그인 페이지로 이동 시뮬레이션
+  };
+
   return (
-    <div className="w-full h-[64px] bg-white border-b border-gray-200 flex items-center justify-between px-[16px]">
-      <p className="text-black text-2xl leading-relaxed tracking-tighter">
-        11JOB
-        <span className="text-[#303030] text-sm leading-relaxed tracking-tight">
+    // 헤더 컨테이너: 약간의 그림자 추가, 고정 높이
+    <header className="w-full h-[64px] bg-white border-b border-gray-100 shadow-md flex items-center justify-between px-6 sticky top-0 z-10">
+      {/* 로고 영역 */}
+      <div
+        className="flex items-center cursor-pointer select-none group"
+        onClick={() => router.push("/")}
+      >
+        <p className="text-3xl font-extrabold tracking-tight text-blue-600 transition duration-150 group-hover:text-blue-500">
+          11JOB
+        </p>
+        <span className="text-gray-500 text-xs tracking-tight ml-2 font-medium hidden sm:inline">
           상세한 취업일정 관리를 통해 취뽀하자!
         </span>
-      </p>
-      <p className="flex flex-row align-center justify-center p-auto text-[#303030] text-sm leading-relaxed tracking-tight">
-        111@111.111
-        <button className="rounded-[4px] border border-[var(--active-active-line-act_l_03_lightg,#BBBBC0)] bg-[var(--active-active-background-act_bg_07_white,#FFF)] shadow-[0_1px_2px_0_rgba(17,17,17,0.12)] flex px-[6px] py-[3.5px] justify-center items-center gap-[2px]">
+      </div>
+
+      {/* 사용자 정보 및 로그아웃 영역 */}
+      <div className="flex flex-row items-center space-x-4">
+        {/* 사용자 이메일 */}
+        <div className="flex items-center space-x-1 p-2 bg-gray-50 rounded-full">
+          <UserIcon size={16} className="text-gray-500" />
+          <p className="text-gray-700 text-sm font-medium leading-relaxed tracking-tight">
+            {userEmail}
+          </p>
+        </div>
+
+        {/* 로그아웃 버튼 */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center px-4 py-2 rounded-full bg-red-500 text-white text-sm font-semibold shadow-md hover:bg-red-600 transition duration-200 focus:outline-none focus:ring-2 focus:ring-red-300"
+        >
+          <LogOut size={16} className="mr-1" />
           로그아웃
         </button>
-      </p>
-    </div>
+      </div>
+    </header>
   );
 }
