@@ -1,7 +1,6 @@
 import axios from "axios";
 
-// 기본 API URL (Swagger UI 출처: https://11job.site/api)
-const BASE_URL = "https://11job.site/api";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const instance = axios.create({
   baseURL: BASE_URL,
