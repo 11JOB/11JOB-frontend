@@ -14,6 +14,11 @@ export interface JoinRequest {
   nickname: string;
 }
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
 /** 이메일 발송 요청 (POST /api/user/emailSend 요청 Body) */
 export interface EmailSendRequest {
   email: string;

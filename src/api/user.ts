@@ -5,6 +5,7 @@ import {
   EmailSendRequest,
   EmailCheckRequest,
   ChangePasswordRequest,
+  LoginRequest,
 } from "../types/user";
 
 /**
@@ -26,6 +27,13 @@ export async function sendEmail(data: EmailSendRequest): Promise<void> {
  */
 export async function checkEmail(data: EmailCheckRequest): Promise<void> {
   await instance.post<CommonResponse<null>>("/user/emailCheck", data);
+}
+
+/**
+ * [POST] 로그인을 진행합니다. (/api/user/login)
+ */
+export async function login(data: LoginRequest): Promise<void> {
+  await instance.post<CommonResponse<null>>("/user/login", data);
 }
 
 /**
