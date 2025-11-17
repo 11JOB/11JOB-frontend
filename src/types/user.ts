@@ -11,7 +11,7 @@ export interface CommonResponse<T = any> {
 export interface JoinRequest {
   email: string;
   password: string;
-  nickname: string;
+  name: string;
 }
 
 export interface LoginRequest {

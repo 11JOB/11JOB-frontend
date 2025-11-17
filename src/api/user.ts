@@ -37,6 +37,13 @@ export async function login(data: LoginRequest): Promise<void> {
 }
 
 /**
+ * [POST] 로그아웃을 진행합니다. (/api/user/logout)
+ */
+export async function logout(): Promise<void> {
+  await instance.post<CommonResponse<null>>("/user/logout");
+}
+
+/**
  * [PATCH] 비밀번호를 변경합니다. (/api/user/change-password)
  */
 export async function changePassword(
