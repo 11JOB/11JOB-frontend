@@ -15,7 +15,7 @@ export async function createPortfolio(
   data: CreatePortfolioRequest
 ): Promise<Portfolio> {
   const response = await instance.post<CommonResponse<Portfolio>>(
-    "/portfolio",
+    "/api/portfolio",
     data
   );
   return response.data.data;
@@ -42,7 +42,7 @@ export async function updatePortfolio(
 ): Promise<Portfolio> {
   // PUT 엔드포인트는 스크린샷에 명시되지 않았으나, CRUD를 완성하기 위해 일반적인 경로로 작성합니다.
   const response = await instance.put<CommonResponse<Portfolio>>(
-    "/portfolio",
+    "/api/portfolio",
     data
   );
   return response.data.data;
@@ -53,5 +53,5 @@ export async function updatePortfolio(
  * (DELETE 엔드포인트는 스크린샷에 명시되지 않았으나, 일반적인 경로로 작성합니다.)
  */
 export async function deletePortfolio(): Promise<void> {
-  await instance.delete("/portfolio");
+  await instance.delete("/api/portfolio");
 }

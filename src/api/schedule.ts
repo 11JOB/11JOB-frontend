@@ -14,7 +14,7 @@ export async function createSchedule(
   data: CreateScheduleRequest
 ): Promise<Schedule> {
   const response = await instance.post<CommonResponse<Schedule>>(
-    "/schedules",
+    "/api/schedules",
     data
   );
   return response.data.data;
@@ -27,7 +27,7 @@ export async function getScheduleList(
   params: ScheduleFilterParams = {}
 ): Promise<Schedule[]> {
   const response = await instance.get<CommonResponse<Schedule[]>>(
-    "/schedules",
+    "/api/schedules",
     {
       params, // 쿼리 파라미터 적용
     }
@@ -40,7 +40,7 @@ export async function getScheduleList(
  */
 export async function getScheduleDetail(scheduleId: number): Promise<Schedule> {
   const response = await instance.get<CommonResponse<Schedule>>(
-    `/schedules/${scheduleId}`
+    `/api/schedules/${scheduleId}`
   );
   return response.data.data;
 }
@@ -53,7 +53,7 @@ export async function updateSchedule(
   data: UpdateScheduleRequest
 ): Promise<Schedule> {
   const response = await instance.put<CommonResponse<Schedule>>(
-    `/schedules/${scheduleId}`,
+    `/api/schedules/${scheduleId}`,
     data
   );
   return response.data.data;
@@ -63,5 +63,5 @@ export async function updateSchedule(
  * [DELETE] 특정 ID의 일정을 삭제합니다. (/api/schedules/{scheduleId})
  */
 export async function deleteSchedule(scheduleId: number): Promise<void> {
-  await instance.delete(`/schedules/${scheduleId}`);
+  await instance.delete(`/api/schedules/${scheduleId}`);
 }

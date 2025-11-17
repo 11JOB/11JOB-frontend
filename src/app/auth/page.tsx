@@ -3,6 +3,8 @@
 import React, { useMemo, useState } from "react";
 import { Eye, EyeOff, ChevronLeft } from "lucide-react";
 import clsx from "clsx";
+import { join, sendEmail, checkEmail, login } from "@/api/user"; // API 호출 함수 추가
+import { useRouter } from "next/navigation"; // Next.js 라우터 추가
 
 // -----------------------------------------------------------
 // 1. Component: Button (컴포넌트 폴더 내의 Button.jsx 역할)
@@ -158,50 +160,77 @@ const ViewHeader: React.FC<{
 
 const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [email, setEmail] = useState("");
-  const [emailCode, setEmailCode] = useState("");
+  const [authNum, setAuthNum] = useState(""); // 인증번호 필드 이름 변경
   const [pw, setPw] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
+  const [name, setName] = useState(""); // 이름 추가
   const [agree, setAgree] = useState(false);
   const [isCodeSent, setIsCodeSent] = useState(false);
+  const [isCodeVerified, setIsCodeVerified] = useState(false); // 인증번호 확인 상태 추가
 
   const pwMatch = useMemo(
     () => pw.length >= 8 && pw === pwConfirm,
     [pw, pwConfirm]
   );
 
-  // 인증번호 발송 가능 여부
   const canSendCode = useMemo(
     () => email.trim().includes("@") && !isCodeSent,
     [email, isCodeSent]
   );
 
-  // 전체 제출 가능 여부
+  const canVerifyCode = useMemo(
+    () => authNum.trim() !== "" && isCodeSent,
+    [authNum, isCodeSent]
+  );
+
   const canSubmit = useMemo(
     () =>
       email.trim() !== "" &&
-      emailCode.trim() !== "" &&
+      isCodeVerified &&
       pwMatch &&
-      agree &&
-      isCodeSent,
-    [email, emailCode, pwMatch, agree, isCodeSent]
+      name.trim() !== "" &&
+      agree,
+    [email, isCodeVerified, pwMatch, name, agree]
   );
 
   // 인증번호 발송 핸들러
-  const handleSendCode = () => {
+  const handleSendCode = async () => {
     if (!canSendCode) return;
-    // TODO: 실제 이메일 인증번호 발송 API 연동
-    setIsCodeSent(true);
-    console.log("Send verification code to:", email);
-    alert(`[${email}]로 인증번호가 발송되었습니다. (시뮬레이션)`);
+    try {
+      await sendEmail({ email });
+      setIsCodeSent(true);
+      alert(`[${email}]로 인증번호가 발송되었습니다.`);
+    } catch (error) {
+      console.error("Failed to send email:", error);
+      alert("이메일 발송에 실패했습니다. 다시 시도해주세요.");
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 인증번호 확인 핸들러
+  const handleVerifyCode = async () => {
+    if (!canVerifyCode) return;
+    try {
+      await checkEmail({ email, authNum: authNum });
+      setIsCodeVerified(true);
+      alert("인증번호가 확인되었습니다.");
+    } catch (error) {
+      console.error("Verification failed:", error);
+      alert("인증번호가 올바르지 않습니다. 다시 확인해주세요.");
+    }
+  };
+
+  // 회원가입 핸들러
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    // TODO: 실제 회원가입 API 연동
-    console.log("Sign Up Success:", { email, emailCode, pw });
-    alert("회원가입이 성공적으로 완료되었습니다.");
-    onBack(); // 회원가입 성공 후 로그인 화면으로 복귀
+    try {
+      await join({ email, password: pw, name });
+      alert("회원가입이 성공적으로 완료되었습니다.");
+      onBack(); // 로그인 화면으로 이동
+    } catch (error) {
+      console.error("Sign up failed:", error);
+      alert("회원가입에 실패했습니다. 다시 시도해주세요.");
+    }
   };
 
   return (
@@ -238,18 +267,33 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </div>
         </div>
 
-        {/* 이메일 인증번호 입력 */}
+        {/* 이메일 인증번호 입력 및 확인 */}
         <div>
           <label className="mb-2 block text-sm font-semibold text-gray-700">
             이메일 인증번호 입력
           </label>
-          <Input
-            value={emailCode}
-            onChange={(e) => setEmailCode(e.target.value)}
-            placeholder="이메일 인증번호 6자리를 입력해주세요"
-            type="text"
-            className="appearance-none"
-          />
+          <div className="flex gap-2">
+            <Input
+              value={authNum}
+              onChange={(e) => setAuthNum(e.target.value)}
+              placeholder="이메일 인증번호 6자리를 입력해주세요"
+              type="text"
+              className="appearance-none"
+            />
+            <button
+              type="button"
+              onClick={handleVerifyCode}
+              disabled={!canVerifyCode}
+              className={clsx(
+                "whitespace-nowrap px-4 rounded-xl text-sm font-semibold transition-colors duration-150",
+                canVerifyCode
+                  ? "bg-green-600 text-white hover:bg-green-700"
+                  : "bg-gray-300 text-gray-600 cursor-not-allowed"
+              )}
+            >
+              인증번호 확인
+            </button>
+          </div>
         </div>
 
         {/* 비밀번호 */}
@@ -284,6 +328,19 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               비밀번호가 일치하지 않습니다.
             </p>
           )}
+        </div>
+
+        {/* 이름 입력 */}
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-gray-700">
+            이름
+          </label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="이름을 입력해주세요"
+            type="text"
+          />
         </div>
 
         {/* 개인정보 동의 */}
@@ -371,18 +428,36 @@ const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
 }) => {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
+  const router = useRouter(); // Next.js 라우터 사용
 
   const canSubmit = useMemo(
     () => email.trim() !== "" && pw.trim() !== "",
     [email, pw]
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    // TODO: 실제 로그인 API 연동 로직
-    console.log("Sign In:", { email, pw });
-    alert("로그인 성공 (실제 라우팅 없음)");
+
+    try {
+      console.log("Sending login request with:", { email, password: pw });
+      const { accessToken, refreshToken } = await login({
+        email,
+        password: pw,
+      }); // 로그인 API 호출
+      console.log("Login successful. Tokens:", { accessToken, refreshToken });
+
+      // 토큰과 이메일을 로컬 스토리지에 저장
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("userEmail", email); // 이메일 저장
+
+      alert("로그인 성공");
+      router.push("/"); // 메인 페이지로 이동
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.");
+    }
   };
 
   return (
@@ -468,7 +543,7 @@ export default function App() {
         return <SignInPage handleNavigation={handleNavigation} />;
 
       case "signup":
-        // SignUpPage 컴포넌트를 렌더링하고, 뒤로가기 시 'signin'으로 이동하도록 설정
+        // SignUpPage 컴포넌트를 렌더링하고, 뒤로가기 시 'signin'으로 이동
         return <SignUpPage onBack={() => handleNavigation("signin")} />;
 
       case "reset":

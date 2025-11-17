@@ -13,7 +13,7 @@ export async function createProject(
   data: CreateProjectRequest
 ): Promise<Project> {
   const response = await instance.post<CommonResponse<Project>>(
-    "/projects",
+    "/api/projects",
     data
   );
   return response.data.data;
@@ -24,7 +24,9 @@ export async function createProject(
  * (목록 조회 시 페이지네이션 파라미터가 있을 수 있으나, 스크린샷에 명시된 쿼리는 없으므로 생략)
  */
 export async function getProjectList(): Promise<Project[]> {
-  const response = await instance.get<CommonResponse<Project[]>>("/projects");
+  const response = await instance.get<CommonResponse<Project[]>>(
+    "/api/projects"
+  );
   return response.data.data;
 }
 
@@ -36,7 +38,7 @@ export async function updateProject(
   data: UpdateProjectRequest
 ): Promise<Project> {
   const response = await instance.put<CommonResponse<Project>>(
-    `/projects/${projectId}`,
+    `/api/projects/${projectId}`,
     data
   );
   return response.data.data;
@@ -46,5 +48,5 @@ export async function updateProject(
  * [DELETE] 특정 ID의 프로젝트를 삭제합니다. (/api/projects/{projectId})
  */
 export async function deleteProject(projectId: number): Promise<void> {
-  await instance.delete(`/projects/${projectId}`);
+  await instance.delete(`/api/projects/${projectId}`);
 }

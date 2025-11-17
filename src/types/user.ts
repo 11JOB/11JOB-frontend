@@ -3,8 +3,8 @@
 // ----------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface CommonResponse<T = any> {
-  code: string;
-  message: string;
+  code: number; // 응답 코드 (예: 200, 400, 500)
+  message: string; // 응답 메시지 (예: "성공", "실패")
   data: T;
 }
 /** 회원 가입 요청 (POST /api/user/join 요청 Body) */
@@ -27,7 +27,7 @@ export interface EmailSendRequest {
 /** 이메일 인증 확인 요청 (POST /api/user/emailCheck 요청 Body) */
 export interface EmailCheckRequest {
   email: string;
-  authCode: string; // 인증 코드를 Body에 포함한다고 추론
+  authNum: string; // 인증 코드를 Body에 포함한다고 추론
 }
 
 /** 비밀번호 변경 요청 (PATCH /api/user/change-password 요청 Body) */

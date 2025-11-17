@@ -16,7 +16,7 @@ export async function getFilteredJobList(
 ): Promise<JobPageResponse> {
   // 실제 API는 CommonResponse<JobPageResponse> 형태로 감싸져 있을 가능성이 높습니다.
   const response = await instance.get<CommonResponse<JobPageResponse>>(
-    "/jobs",
+    "/api/jobs",
     {
       params,
     }
