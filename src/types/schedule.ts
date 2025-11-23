@@ -1,6 +1,25 @@
-// ----------------------------------------------------
-// 공통 응답 구조
-// ----------------------------------------------------
+// ✅ 리스트에서 sessionStorage로 넘길 공고 최소 구조
+export interface SelectedJob {
+  jobId: number;
+  companyName: string;
+  title: string;
+  expirationDate: string;
+}
+
+// ✅ POST /api/schedules dto 구조
+export interface CreateScheduleDto {
+  companyName: string;
+  title: string;
+  scheduleDate: string; // YYYY-MM-DD
+  details: {
+    detailId: number;
+    title: string;
+    content: string;
+  }[];
+  filesToDelete: number[];
+}
+
+// 공통 응답
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface CommonResponse<T = any> {
   code: string;
@@ -8,10 +27,9 @@ export interface CommonResponse<T = any> {
   data: T;
 }
 
-// ----------------------------------------------------
-// Schedule Detail and File Types
-// ----------------------------------------------------
-
+// --------------------
+// 응답 Schedule 타입
+// --------------------
 export interface ScheduleDetail {
   detailId: number;
   title: string;
@@ -24,47 +42,23 @@ export interface ScheduleFile {
   filePath: string;
 }
 
-// ----------------------------------------------------
-// Schedule (일정) 관련 타입 - API 응답 구조에 맞춤
-// ----------------------------------------------------
-
-/** * 일정 객체 (API 응답/조회 구조)
- */
 export interface Schedule {
   scheduleId: number;
   companyId: number;
   companyName: string;
   title: string;
-  scheduleDate: string; // 일정 날짜 (YYYY-MM-DD)
-  createdDate: string; // 생성일시 (ISO 8601)
-  updatedDate: string; // 수정일시 (ISO 8601)
+  scheduleDate: string;
+  createdDate: string;
+  updatedDate: string;
   details: ScheduleDetail[];
   files: ScheduleFile[];
 }
 
-/** * 일정 생성 DTO 요청 (FormData의 'dto' 필드에 JSON 문자열로 들어갈 구조)
- */
-export interface CreateScheduleDto {
-  title: string;
-  scheduleDate: string; // YYYY-MM-DD
-  companyName: string;
-  details: {
-    title: string;
-    content: string;
-  }[];
-}
-
-/** * 일정 수정 요청 (PUT /api/schedules/{scheduleId} 요청 Body)
- */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface UpdateScheduleRequest extends CreateScheduleDto {
-  // 수정 요청 시 필요한 추가 필드가 있다면 여기에 명시
-}
+export interface UpdateScheduleRequest extends CreateScheduleDto {}
 
-/** * 일정 목록 조회 쿼리 파라미터 (GET /api/schedules 쿼리)
- */
 export interface ScheduleFilterParams {
   page?: number;
   size?: number;
-  sort?: string; // 정렬 기준
+  sort?: string;
 }

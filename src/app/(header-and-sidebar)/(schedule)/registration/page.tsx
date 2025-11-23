@@ -5,70 +5,38 @@ import { DayPicker } from "react-day-picker";
 import { format, parse } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Calendar, X, PlusCircle, FileText, Trash2 } from "lucide-react";
-// 💡 Next.js 의존성 제거 및 대체 로직 사용
-// import { useRouter, useSearchParams } from "next/navigation";
-import { createSchedule } from "@/api/schedule"; // 💡 상대 경로로 수정
-import { CreateScheduleDto } from "@/types/schedule"; // 💡 상대 경로로 수정
+import { createSchedule } from "@/api/schedule";
+import { CreateScheduleDto, SelectedJob } from "@/types/schedule";
 
-// ----------------------------------------------------
-// Next.js 라우팅 대체 함수 (Canvas 환경 호환성 확보)
-// ----------------------------------------------------
+// --------------------
+// 라우터 대체
+// --------------------
 const useRouter = () => ({
   push: (path: string) => {
-    // 실제 환경에서는 페이지 이동을 수행합니다.
-    console.log("Navigating to:", path);
+    window.location.href = path;
   },
 });
 
-const useSearchParams = () => {
-  if (typeof window === "undefined") return { get: () => null };
-
-  const urlParams = new URLSearchParams(window.location.search);
-  return {
-    get: (key: string) => urlParams.get(key),
-  };
-};
-
-// ----------------------------------------------------
-// 1. 유틸리티 함수 (쿼리 파라미터 파싱 시뮬레이션)
-// ----------------------------------------------------
-/**
- * Canvas 환경에서 쿼리 파라미터를 파싱하는 함수를 시뮬레이션합니다.
- */
-const getQueryParams = () => {
-  if (typeof window === "undefined") return {};
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const params: { [key: string]: string } = {};
-
-  urlParams.forEach((value, key) => {
-    params[key] = value;
-  });
-
-  return params;
-};
-
-// ----------------------------------------------------
-// 2. 타입 정의
-// ----------------------------------------------------
-
+// --------------------
+// 타입
+// --------------------
 interface DetailItem {
   id: number;
   title: string;
   content: string;
 }
+
 interface ScheduleFormData {
   date: Date;
   mainTitle: string;
   details: DetailItem[];
-  files: File[]; // 💡 File[]로 변경하여 여러 파일을 지원
+  files: File[];
   companyName: string;
 }
 
-// ----------------------------------------------------
-// 3. DatePickerModal 컴포넌트 (팝업 달력) - 생략 없이 그대로 유지
-// ----------------------------------------------------
-
+// --------------------
+// DatePickerModal
+// --------------------
 interface DatePickerModalProps {
   selectedDate: Date;
   isOpen: boolean;
@@ -84,30 +52,18 @@ const DatePickerModal: FC<DatePickerModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const dayPickerClassNames = {
-    nav_button: "p-2 rounded-full hover:bg-gray-200 transition duration-150",
-    caption_label: "font-extrabold text-xl text-gray-800",
-    day: "rounded-full p-2 text-center text-sm font-medium hover:bg-blue-100 transition duration-150",
-  };
-
-  const handleDayClick = (day: Date) => {
-    onDateSelect(day);
-    onClose();
-  };
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-white p-6 max-w-xs mx-auto rounded-3xl shadow-2xl relative transform transition-all duration-300 scale-100 border-t-4 border-blue-500"
+        className="bg-white p-6 max-w-xs mx-auto rounded-3xl shadow-2xl relative border-t-4 border-blue-500"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition duration-150"
-          aria-label="닫기"
+          className="absolute top-4 right-4 p-1 rounded-full text-gray-400 hover:bg-gray-100"
         >
           <X className="h-6 w-6" strokeWidth={2.5} />
         </button>
@@ -119,20 +75,22 @@ const DatePickerModal: FC<DatePickerModalProps> = ({
         <DayPicker
           mode="single"
           selected={selectedDate}
-          onDayClick={handleDayClick}
+          onDayClick={(day) => {
+            onDateSelect(day);
+            onClose();
+          }}
           locale={ko}
           classNames={{
             root: "w-full",
             caption: "flex justify-between items-center mb-4 px-2",
-            caption_label: dayPickerClassNames.caption_label,
-            nav_button_previous: dayPickerClassNames.nav_button,
-            nav_button_next: dayPickerClassNames.nav_button,
+            caption_label: "font-extrabold text-xl text-gray-800",
+            nav_button_previous: "p-2 rounded-full hover:bg-gray-200",
+            nav_button_next: "p-2 rounded-full hover:bg-gray-200",
             head_cell: "text-gray-500 font-semibold text-sm pt-2 pb-1",
-            day: dayPickerClassNames.day,
+            day: "rounded-full p-2 text-center text-sm font-medium hover:bg-blue-100",
             day_selected: "bg-blue-500 text-white hover:bg-blue-600",
             day_today: "border-2 border-blue-500 text-blue-500 font-bold",
             day_outside: "text-gray-400 opacity-60",
-            day_disabled: "text-gray-300 cursor-default",
           }}
         />
       </div>
@@ -140,10 +98,9 @@ const DatePickerModal: FC<DatePickerModalProps> = ({
   );
 };
 
-// ----------------------------------------------------
-// 4. 동적 세부 사항 컴포넌트 - 생략 없이 그대로 유지
-// ----------------------------------------------------
-
+// --------------------
+// DetailForm
+// --------------------
 interface DetailFormProps {
   detail: DetailItem;
   index: number;
@@ -169,115 +126,90 @@ const DetailForm: React.FC<DetailFormProps> = ({
         <button
           type="button"
           onClick={() => onRemove(detail.id)}
-          className="absolute top-3 right-3 p-1 text-gray-400 hover:text-red-500 transition duration-150 rounded-full hover:bg-red-50"
-          aria-label="세부 항목 제거"
+          className="absolute top-3 right-3 p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50"
         >
           <X className="h-4 w-4" />
         </button>
       )}
 
       <div>
-        <label
-          htmlFor={`detail-title-${detail.id}`}
-          className="block text-sm font-medium text-gray-600 mb-1"
-        >
-          제목 (예: 예상 질문, 필수 자료, 준비물)
+        <label className="block text-sm font-medium text-gray-600 mb-1">
+          제목
         </label>
         <input
-          id={`detail-title-${detail.id}`}
           type="text"
           value={detail.title}
           onChange={(e) => onChange(detail.id, "title", e.target.value)}
-          placeholder={index === 0 ? "예상 질문 (면접)" : "세부 내용의 제목"}
-          className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition duration-150"
+          className="w-full border border-gray-300 rounded-lg p-3"
         />
       </div>
 
       <div>
-        <label
-          htmlFor={`detail-content-${detail.id}`}
-          className="block text-sm font-medium text-gray-600 mb-1"
-        >
+        <label className="block text-sm font-medium text-gray-600 mb-1">
           내용
         </label>
         <textarea
-          id={`detail-content-${detail.id}`}
           rows={3}
           value={detail.content}
           onChange={(e) => onChange(detail.id, "content", e.target.value)}
-          placeholder={
-            index === 0 ? "1. 자기소개 2. 지원동기" : "상세 내용 입력"
-          }
-          className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition duration-150 resize-y"
+          className="w-full border border-gray-300 rounded-lg p-3 resize-y"
         />
       </div>
     </div>
   );
 };
 
-// ----------------------------------------------------
-// 5. 메인 ScheduleRegistration 컴포넌트
-// ----------------------------------------------------
-
+// --------------------
+// 메인
+// --------------------
 export default function ScheduleRegistration() {
-  const today: Date = new Date();
+  const today = new Date();
   const initialDetailId = 1;
-
-  // Next.js 라우터/파라미터 대체 사용
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // Next.js 환경이 아닌 경우를 위해 폴백
-  const company = searchParams.get("company") || "";
 
   const [formData, setFormData] = useState<ScheduleFormData>({
     date: today,
-    mainTitle: company,
+    mainTitle: "",
     details: [{ id: initialDetailId, title: "", content: "" }],
-    files: [], // 💡 파일 배열로 초기화
-    companyName: company || "(기업명)",
+    files: [],
+    companyName: "(기업명)",
   });
 
-  const [nextDetailId, setNextDetailId] = useState<number>(initialDetailId + 1);
-  const [isCalendarOpen, setIsCalendarOpen] = useState<boolean>(false);
+  const [nextDetailId, setNextDetailId] = useState(initialDetailId + 1);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [hasSelectedJob, setHasSelectedJob] = useState(true);
 
-  // 쿼리 파라미터 로직
+  // ✅ selectedJob 자동 채움
   useEffect(() => {
-    const params = getQueryParams();
-    const company = params.company ? decodeURIComponent(params.company) : null;
-    const deadline = params.deadline
-      ? decodeURIComponent(params.deadline)
-      : null;
-
-    if (company) {
-      setFormData((prev) => ({
-        ...prev,
-        companyName: company,
-        mainTitle: `${company} 채용 일정`,
-      }));
+    const raw = sessionStorage.getItem("selectedJob");
+    if (!raw) {
+      setHasSelectedJob(false);
+      return;
     }
 
-    if (deadline) {
-      const [yy, mm, dd] = deadline.split(".");
-      const fullYear = parseInt(yy) < 50 ? `20${yy}` : `19${yy}`;
-      const dateString = `${fullYear}-${mm}-${dd}`;
+    try {
+      const job: SelectedJob = JSON.parse(raw);
 
-      const parsedDate = parse(dateString, "yyyy-MM-dd", new Date());
+      setFormData((prev) => ({
+        ...prev,
+        companyName: job.companyName,
+        mainTitle: `${job.companyName} - ${job.title}`,
+      }));
 
-      if (parsedDate && !isNaN(parsedDate.getTime())) {
-        setFormData((prev) => ({
-          ...prev,
-          date: parsedDate,
-        }));
-      } else {
-        console.error("🚨 파싱된 마감일이 유효하지 않습니다:", deadline);
+      if (job.expirationDate) {
+        const parsedDate = parse(job.expirationDate, "yyyy-MM-dd", new Date());
+        if (!isNaN(parsedDate.getTime())) {
+          setFormData((prev) => ({ ...prev, date: parsedDate }));
+        }
       }
+    } catch (e) {
+      console.error("selectedJob 파싱 실패:", e);
+      setHasSelectedJob(false);
     }
   }, []);
 
-  const handleDateSelect = (date: Date) => {
-    setFormData((prev) => ({ ...prev, date: date }));
-  };
+  const handleDateSelect = (date: Date) =>
+    setFormData((prev) => ({ ...prev, date }));
 
   const handleDetailChange = (
     id: number,
@@ -307,20 +239,21 @@ export default function ScheduleRegistration() {
     }));
   };
 
-  // 💡 여러 파일 핸들링 함수
+  // ✅ 파일이 {}로 들어가는 문제 방지 버전
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const newFiles = Array.from(event.target.files);
-      setFormData((prev) => ({
-        ...prev,
-        files: [...prev.files, ...newFiles], // 기존 파일에 추가
-      }));
-      // 파일 입력 필드 초기화 (같은 파일을 다시 선택할 수 있도록)
-      event.target.value = "";
-    }
+    const files = event.target.files;
+    if (!files) return;
+
+    const fileArray = Array.from(files).filter((f) => f instanceof File);
+
+    setFormData((prev) => ({
+      ...prev,
+      files: [...prev.files, ...fileArray],
+    }));
+
+    event.target.value = "";
   };
 
-  // 💡 파일 제거 함수
   const handleRemoveFile = (fileIndex: number) => {
     setFormData((prev) => ({
       ...prev,
@@ -328,44 +261,65 @@ export default function ScheduleRegistration() {
     }));
   };
 
-  // 🚀 핵심: API 명세에 맞게 FormData를 구성하는 handleSubmit 함수
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    // 1. DTO 객체 구성 (API 명세의 Request body > dto 필드)
     const dtoObject: CreateScheduleDto = {
+      companyName: formData.companyName,
       title: formData.mainTitle,
-      scheduleDate: format(formData.date, "yyyy-MM-dd"), // '2025-11-22' 형식
-      companyName: formData.companyName, // API 요구 사항에 맞게 추가
+      scheduleDate: format(formData.date, "yyyy-MM-dd"),
       details: formData.details.map((detail) => ({
+        detailId: detail.id, // ✅ dto 스펙 맞춤
         title: detail.title,
         content: detail.content,
       })),
+      filesToDelete: [],
     };
 
-    // 2. FormData 객체 생성
     const submitFormData = new FormData();
 
-    // 3. DTO를 JSON 문자열로 변환하여 'dto' 필드로 추가 (필수)
+    // ✅ dto는 JSON 문자열로 "dto" 키에 넣기
     submitFormData.append("dto", JSON.stringify(dtoObject));
 
-    // 4. Multiple Files 추가
-    // 백엔드는 'files' 키로 들어온 여러 파일을 배열로 처리할 것으로 가정합니다.
+    // ✅ files는 진짜 File 객체만 append 됨
     formData.files.forEach((file) => {
-      submitFormData.append("files", file); // 동일한 키 'files'로 모든 파일 추가
+      submitFormData.append("files", file);
     });
+
+    // ✅ 디버깅 필요하면 켜
+    // for (const [k, v] of submitFormData.entries()) {
+    //   console.log("FD:", k, v, v instanceof File);
+    // }
 
     try {
       await createSchedule(submitFormData);
-
-      // 💡 UI 알림 대신 콘솔 로그 및 페이지 이동 (Next.js 라우팅 대체)
-      console.log("일정이 성공적으로 등록되었습니다.");
       router.push("/schedule/list");
     } catch (error) {
       console.error("일정 등록 중 오류 발생:", error);
       alert("일정 등록에 실패했습니다.");
     }
   };
+
+  if (!hasSelectedJob) {
+    return (
+      <div className="flex-1 p-8 min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white p-8 rounded-2xl shadow-xl text-center space-y-4">
+          <p className="text-xl font-bold text-gray-800">
+            선택된 채용 공고가 없습니다.
+          </p>
+          <p className="text-gray-500">
+            채용 공고 리스트에서 “세부 일정 등록” 버튼을 눌러 들어와 주세요.
+          </p>
+          <button
+            onClick={() => router.push("/list")}
+            className="px-5 py-2 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"
+          >
+            공고 리스트로 가기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 p-4 sm:p-8">
@@ -375,13 +329,10 @@ export default function ScheduleRegistration() {
             <span className="text-blue-600">{formData.companyName}</span> 세부
             일정 등록
           </h1>
-          <p className="text-base text-gray-500 mt-2">
-            면접, 서류 제출, 발표 등 주요 일정을 상세하게 관리하세요.
-          </p>
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-12">
-          {/* 1. 기본 정보 섹션 */}
+          {/* 기본 정보 */}
           <section className="p-6 bg-blue-50 rounded-xl border-l-4 border-blue-400 shadow-inner space-y-6">
             <h2 className="text-xl font-bold text-blue-700 flex items-center space-x-2">
               <FileText className="w-6 h-6" />
@@ -405,16 +356,14 @@ export default function ScheduleRegistration() {
                 <button
                   type="button"
                   onClick={() => setIsCalendarOpen(true)}
-                  className="p-2 ml-3 rounded-full text-blue-500 hover:bg-blue-100 transition duration-150"
-                  aria-label="달력 열기"
+                  className="p-2 ml-3 rounded-full text-blue-500 hover:bg-blue-100"
                 >
                   <Calendar className="h-6 w-6" />
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDateSelect(today)}
-                  className="p-2 ml-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition duration-150"
-                  aria-label="오늘 날짜로 초기화"
+                  className="p-2 ml-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -435,21 +384,19 @@ export default function ScheduleRegistration() {
                     mainTitle: e.target.value,
                   }))
                 }
-                placeholder={`${formData.companyName}의 면접, 서류 제출, 혹은 마감일`}
-                className="w-full border border-gray-300 rounded-xl p-3 text-lg text-gray-700 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition duration-150 shadow-sm"
+                className="w-full border border-gray-300 rounded-xl p-3 text-lg"
               />
             </div>
           </section>
 
-          {/* 2. 세부 사항 섹션 (동적 생성) */}
+          {/* 세부 항목 */}
           <section className="space-y-6">
             <h2 className="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2 flex justify-between items-center">
               <span>세부 준비 항목</span>
               <button
                 type="button"
                 onClick={handleAddDetail}
-                className="flex items-center space-x-1 px-3 py-1 bg-blue-500 text-white text-sm font-bold rounded-full hover:bg-blue-600 transition duration-150 shadow-md shadow-blue-200"
-                aria-label="세부 항목 추가"
+                className="flex items-center space-x-1 px-3 py-1 bg-blue-500 text-white text-sm font-bold rounded-full hover:bg-blue-600 shadow-md shadow-blue-200"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>항목 추가</span>
@@ -464,49 +411,49 @@ export default function ScheduleRegistration() {
                   index={index}
                   onChange={handleDetailChange}
                   onRemove={handleRemoveDetail}
-                  isRemovable={formData.details.length > 1} // 최소 1개는 유지
+                  isRemovable={formData.details.length > 1}
                 />
               ))}
             </div>
           </section>
 
-          {/* 3. 파일 업로드 섹션 (다중 파일 지원) */}
+          {/* 파일 업로드 */}
           <section className="p-6 bg-gray-50 rounded-xl border-l-4 border-gray-400 space-y-4">
             <h2 className="text-xl font-bold text-gray-700 flex items-center space-x-2">
               <FileText className="w-6 h-6" />
               <span>참고 파일 업로드 (다중 파일 지원)</span>
             </h2>
+
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center text-gray-500 relative">
-              {/* 파일 인풋 */}
               <input
                 id="file-upload"
                 type="file"
-                multiple // 💡 multiple 속성 추가
+                multiple
                 onChange={handleFileChange}
                 className="absolute inset-0 opacity-0 cursor-pointer"
-                aria-label="파일 선택"
               />
+
               <p className="mb-4">
-                이력서, 포트폴리오 등 관련 파일을 선택하거나 드래그 앤
-                드롭하세요.
+                이력서, 포트폴리오 등 관련 파일을 선택하세요.
               </p>
+
               <label
                 htmlFor="file-upload"
-                className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition duration-150 inline-block cursor-pointer shadow-sm"
+                className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 inline-block cursor-pointer"
               >
                 파일 선택/추가
               </label>
 
-              {/* 선택된 파일 목록 */}
               {formData.files.length > 0 && (
-                <div className="mt-6 space-y-2 text-left bg-white p-4 rounded-lg border border-gray-100">
+                <div className="mt-6 space-y-2 text-left bg-white p-4 rounded-lg border">
                   <p className="font-semibold text-gray-700">
                     선택된 파일 ({formData.files.length}개)
                   </p>
+
                   {formData.files.map((file, index) => (
                     <div
-                      key={index} // file.name + index를 키로 사용
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-md text-sm text-gray-700 border border-gray-100"
+                      key={`${file.name}-${index}`}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-md text-sm text-gray-700 border"
                     >
                       <span className="truncate max-w-[80%]">
                         {file.name} ({formatFileSize(file.size)})
@@ -514,8 +461,7 @@ export default function ScheduleRegistration() {
                       <button
                         type="button"
                         onClick={() => handleRemoveFile(index)}
-                        className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition duration-150"
-                        aria-label={`파일 ${file.name} 제거`}
+                        className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -526,11 +472,11 @@ export default function ScheduleRegistration() {
             </div>
           </section>
 
-          {/* 등록 버튼 */}
+          {/* 제출 */}
           <div className="flex justify-center pt-8 border-t border-gray-100">
             <button
               type="submit"
-              className="w-full max-w-sm px-8 py-4 bg-orange-500 text-white text-xl font-extrabold rounded-full hover:bg-orange-600 transition duration-150 shadow-2xl shadow-orange-300 transform hover:scale-[1.02] active:scale-100"
+              className="w-full max-w-sm px-8 py-4 bg-orange-500 text-white text-xl font-extrabold rounded-full hover:bg-orange-600 shadow-2xl shadow-orange-300"
             >
               🚀 일정 등록 완료
             </button>
@@ -538,7 +484,6 @@ export default function ScheduleRegistration() {
         </form>
       </div>
 
-      {/* 날짜 선택 팝업 컴포넌트 */}
       <DatePickerModal
         selectedDate={formData.date}
         isOpen={isCalendarOpen}
@@ -549,11 +494,11 @@ export default function ScheduleRegistration() {
   );
 }
 
-// 💡 파일 크기 포맷 유틸리티
+// 파일 크기 포맷
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 Bytes";
   const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
