@@ -1,25 +1,27 @@
-// ✅ 리스트에서 sessionStorage로 넘길 공고 최소 구조
+// src/types/schedule.ts
+
+// ✅ 리스트에서 registration으로 넘길 최소 구조
 export interface SelectedJob {
   jobId: number;
   companyName: string;
   title: string;
-  expirationDate: string;
+  expirationDate: string; // "yyyy-MM-dd"
 }
 
-// ✅ POST /api/schedules dto 구조
+// ✅ Swagger POST /api/schedules dto 구조 그대로
 export interface CreateScheduleDto {
   companyName: string;
   title: string;
-  scheduleDate: string; // YYYY-MM-DD
+  scheduleDate: string; // "yyyy-MM-dd"
   details: {
-    detailId: number;
+    detailId?: number; // 생성 시 optional
     title: string;
     content: string;
   }[];
   filesToDelete: number[];
 }
 
-// 공통 응답
+// ✅ 공통 응답
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface CommonResponse<T = any> {
   code: string;
@@ -27,9 +29,7 @@ export interface CommonResponse<T = any> {
   data: T;
 }
 
-// --------------------
-// 응답 Schedule 타입
-// --------------------
+// ✅ 응답 Schedule 타입
 export interface ScheduleDetail {
   detailId: number;
   title: string;
@@ -54,11 +54,11 @@ export interface Schedule {
   files: ScheduleFile[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface UpdateScheduleRequest extends CreateScheduleDto {}
-
 export interface ScheduleFilterParams {
   page?: number;
   size?: number;
   sort?: string;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface UpdateScheduleRequest extends CreateScheduleDto {}

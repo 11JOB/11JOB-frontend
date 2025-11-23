@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+// import { useRouter } from "next/navigation"; // ✅ 추가
 import {
   Plus,
   X,
@@ -19,37 +20,38 @@ import {
   LinkIcon,
 } from "lucide-react";
 
+import { createPortfolio } from "@/api/portfolio";
+import type { CreatePortfolioRequest } from "@/types/portfolio";
+import ProjectModal from "./projectModal"; // ✅ 모달 컴포넌트 임포트
+
 // --- 1. 타입 정의 ---
 
-// 1.1. 개인 정보 상태 타입
 interface ProfileState {
   name: string;
   email: string;
   phone: string;
   address: string;
-  profileImage: string | null; // Base64 URL 또는 null
+  profileImage: string | null; // Base64(미리보기용)
 }
 
-// 1.2. 동적 항목 기본 타입 (모든 동적 항목이 가질 수 있는 필드)
 interface BaseDetailItem {
   id: number;
-  institution?: string; // 기관/회사명
-  title?: string; // 자격증/자소서 제목
-  detail?: string; // 상세 내용 (추가)
+  institution?: string;
+  title?: string;
+  detail?: string;
 }
 
-// 1.3. 동적 항목별 상세 타입
 interface EducationCareerActivity extends BaseDetailItem {
   institution: string;
   entryDate: string; // YYYY-MM
   exitDate: string | "재직 중"; // YYYY-MM
-  title?: never; // 이 타입에서는 title 필드가 없음을 명시
+  title?: never;
 }
 
 interface Introduction extends BaseDetailItem {
   title: string;
   link: string;
-  institution?: never; // 이 타입에서는 institution 필드가 없음을 명시
+  institution?: never;
 }
 
 interface Certification extends BaseDetailItem {
@@ -63,14 +65,12 @@ type DetailItem = EducationCareerActivity | Introduction | Certification;
 type DetailList = DetailItem[];
 type DetailType = "edu" | "career" | "activity" | "intro" | "cert";
 
-// 1.4. FormSection 컴포넌트 Prop 타입
 interface FormSectionProps {
   title: string;
   list: DetailList;
   handlers: {
     onAdd: () => void;
     onRemove: (id: number) => void;
-    // field의 타입을 string으로 유지하되, 내부에서 타입 안전하게 처리
     onChange: (id: number, field: string, value: string) => void;
   };
   type: DetailType;
@@ -79,7 +79,6 @@ interface FormSectionProps {
 
 // --- 2. 유틸리티 함수 및 타입 가드 ---
 
-// 폼 필드 상태를 초기화하는 헬퍼
 const createNewDetail = (id: number, type: DetailType): DetailItem => {
   if (type === "edu" || type === "career" || type === "activity") {
     return {
@@ -95,30 +94,25 @@ const createNewDetail = (id: number, type: DetailType): DetailItem => {
   if (type === "cert") {
     return { id, title: "", acquisitionDate: "2024-01-01" } as Certification;
   }
-  // 기본값 (타입스크립트 경고 방지)
   throw new Error(`Invalid DetailType: ${type}`);
 };
 
-// 타입 가드: EducationCareerActivity 확인
 const isEducationCareerActivity = (
   item: DetailItem
 ): item is EducationCareerActivity => {
   return (item as EducationCareerActivity).entryDate !== undefined;
 };
 
-// 타입 가드: Introduction 확인
 const isIntroduction = (item: DetailItem): item is Introduction => {
   return (item as Introduction).link !== undefined;
 };
 
-// 타입 가드: Certification 확인
 const isCertification = (item: DetailItem): item is Certification => {
   return (item as Certification).acquisitionDate !== undefined;
 };
 
-// --- 3. 서브 컴포넌트: 재사용 가능한 폼 항목 ---
+// --- 3. 서브 컴포넌트 ---
 
-// 날짜 입력 필드 (YYYY-MM)
 const DateInput: React.FC<{
   id: string;
   label: string;
@@ -141,7 +135,6 @@ const DateInput: React.FC<{
   </div>
 );
 
-// 동적 폼 항목 (학력, 경력, 활동 등)
 const DynamicFormItem: React.FC<{
   item: DetailItem;
   type: DetailType;
@@ -149,11 +142,9 @@ const DynamicFormItem: React.FC<{
   onRemove: (id: number) => void;
 }> = ({ item, type, onChange, onRemove }) => {
   const handleChange = (field: string, value: string) => {
-    // 필드 이름을 string으로 전달받고, onChange 상위 핸들러로 전달
     onChange(item.id, field, value);
   };
 
-  // 런타임 타입 가드를 통해 item의 타입을 좁혀서 사용
   const isDateRangeType = isEducationCareerActivity(item);
   const isCertType = isCertification(item);
   const isIntroType = isIntroduction(item);
@@ -168,14 +159,12 @@ const DynamicFormItem: React.FC<{
         <X size={18} />
       </button>
 
-      {/* 기본 입력 필드: 기관명/제목 */}
       <div className="mb-3 mt-1">
         <label className="text-sm font-medium text-gray-700 block mb-1">
           {isIntroType || isCertType ? "제목" : "기관명/회사명"}
         </label>
         <input
           type="text"
-          // institution 또는 title에 접근할 수 있도록 유니온 타입의 속성을 사용
           value={item.institution || item.title || ""}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             const field = isIntroType || isCertType ? "title" : "institution";
@@ -188,7 +177,6 @@ const DynamicFormItem: React.FC<{
         />
       </div>
 
-      {/* 상세 내용 (디자인 개선을 위해 추가) */}
       <div className="mb-3">
         <label className="text-sm font-medium text-gray-700 block mb-1">
           상세 내용 (선택 사항)
@@ -204,14 +192,12 @@ const DynamicFormItem: React.FC<{
         />
       </div>
 
-      {/* 날짜 필드 */}
       <div
         className={`grid ${
           isDateRangeType ? "grid-cols-2 gap-3" : "grid-cols-1"
         } mt-3`}
       >
         {isDateRangeType && (
-          // EducationCareerActivity 타입임을 확인했으므로 entryDate 접근 가능
           <>
             <div className="col-span-1">
               <label className="text-sm font-medium text-gray-700 block mb-1">
@@ -239,7 +225,6 @@ const DynamicFormItem: React.FC<{
         )}
 
         {isCertType && (
-          // Certification 타입임을 확인했으므로 acquisitionDate 접근 가능
           <div className="col-span-1">
             <label className="text-sm font-medium text-gray-700 block mb-1">
               취득 연월일
@@ -256,9 +241,7 @@ const DynamicFormItem: React.FC<{
         )}
       </div>
 
-      {/* 자기소개서/링크 필드 */}
       {isIntroType && (
-        // Introduction 타입임을 확인했으므로 link 접근 가능
         <div className="mt-4">
           <label className="text-sm font-medium text-gray-700 block mb-1 flex items-center">
             <LinkIcon size={14} className="text-indigo-500 mr-1" />
@@ -279,7 +262,6 @@ const DynamicFormItem: React.FC<{
   );
 };
 
-// 폼 섹션을 렌더링하는 헬퍼 컴포넌트
 const FormSection: React.FC<FormSectionProps> = ({
   title,
   list,
@@ -323,6 +305,13 @@ const FormSection: React.FC<FormSectionProps> = ({
 
 // --- 4. 메인 컴포넌트 ---
 export default function PortfolioRegistration() {
+  //   const router = useRouter(); // ✅ 추가
+
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false); // ✅ 모달 상태 추가
+
+  const handleOpenProjectModal = () => setIsProjectModalOpen(true); // ✅ 모달 열기
+  const handleCloseProjectModal = () => setIsProjectModalOpen(false); // ✅ 모달 닫기
+
   const [profile, setProfile] = useState<ProfileState>({
     name: "홍길동",
     email: "email@email.com",
@@ -331,14 +320,14 @@ export default function PortfolioRegistration() {
     profileImage: null,
   });
 
-  // 동적 항목 상태 관리 (DetailList 타입 사용)
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+
   const [educationList, setEducationList] = useState<DetailList>([]);
   const [careerList, setCareerList] = useState<DetailList>([]);
   const [activityList, setActivityList] = useState<DetailList>([]);
   const [introList, setIntroList] = useState<DetailList>([]);
   const [certList, setCertList] = useState<DetailList>([]);
 
-  // 초기 항목 추가 (디자인 개선 후, 기본값으로 하나씩 추가)
   React.useEffect(() => {
     setEducationList([createNewDetail(1, "edu")]);
     setCareerList([createNewDetail(1, "career")]);
@@ -350,27 +339,22 @@ export default function PortfolioRegistration() {
   const getNextId = (list: DetailList): number =>
     list.length > 0 ? Math.max(...list.map((item) => item.id)) + 1 : 1;
 
-  // 일반 폼 핸들러
   const handleProfileChange = (field: keyof ProfileState, value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
-  // 동적 항목 추가/제거/변경 핸들러
   const createListHandlers = (
     list: DetailList,
     setList: React.Dispatch<React.SetStateAction<DetailList>>,
     type: DetailType
   ) => ({
-    // 항목 추가
     onAdd: () => {
       const newId = getNextId(list);
       setList((prev) => [...prev, createNewDetail(newId, type)]);
     },
-    // 항목 제거
     onRemove: (id: number) => {
       setList((prev) => prev.filter((item) => item.id !== id));
     },
-    // 항목 변경
     onChange: (id: number, field: string, value: string) => {
       setList((prev) =>
         prev.map((item) =>
@@ -403,27 +387,65 @@ export default function PortfolioRegistration() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        handleProfileChange("profileImage", reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    setProfileImageFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      handleProfileChange("profileImage", reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const portfolioData = {
-      profile,
-      educationList,
-      careerList,
-      activityList,
-      introList,
-      certList,
+
+    const dto: CreatePortfolioRequest = {
+      phone: profile.phone,
+      address: profile.address,
+      profileImage: profile.profileImage ?? "",
+
+      // ✅ educations = 학력
+      educations: educationList.filter(isEducationCareerActivity).map((i) => ({
+        institutionName: i.institution,
+        startDate: i.entryDate,
+        endDate: i.exitDate,
+      })),
+
+      // ✅ experiences = 경력
+      experiences: careerList.filter(isEducationCareerActivity).map((i) => ({
+        institutionName: i.institution,
+        startDate: i.entryDate,
+        endDate: i.exitDate,
+      })),
+
+      // ✅ activities = 대외활동
+      activities: activityList.filter(isEducationCareerActivity).map((i) => ({
+        institutionName: i.institution,
+        startDate: i.entryDate,
+        endDate: i.exitDate,
+      })),
+
+      // ✅ links = 링크
+      links: introList.filter(isIntroduction).map((i) => ({
+        title: i.title,
+        url: i.link,
+      })),
+
+      // ✅ certificates = 자격증
+      certificates: certList.filter(isCertification).map((i) => ({
+        title: i.title,
+        acquireDate: i.acquisitionDate,
+      })),
     };
-    console.log("최종 포트폴리오 데이터:", portfolioData);
-    // 실제 API 연동 로직
+
+    try {
+      const saved = await createPortfolio(dto, profileImageFile);
+      console.log("✅ 포트폴리오 저장 성공:", saved);
+    } catch (err) {
+      console.error("❌ 포트폴리오 저장 실패:", err);
+    }
   };
 
   const InputIcon: React.FC<{
@@ -452,7 +474,6 @@ export default function PortfolioRegistration() {
   return (
     <div className="p-4 sm:p-8 bg-slate-50 min-h-screen font-sans">
       <div className="max-w-4xl mx-auto">
-        {/* 헤더 */}
         <div className="mb-10 p-6 bg-white rounded-xl shadow-md border-t-4 border-indigo-600">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-1 tracking-tight">
             포트폴리오 빌더
@@ -469,6 +490,7 @@ export default function PortfolioRegistration() {
               <User size={24} className="mr-2" />
               개인 기본 정보
             </h2>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* 이미지 영역 */}
               <div className="flex flex-col items-center justify-center col-span-1 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-indigo-500 transition cursor-pointer relative group aspect-square">
@@ -533,7 +555,7 @@ export default function PortfolioRegistration() {
             </div>
           </div>
 
-          {/* 2. 학력 및 교육 이력 */}
+          {/* 2. educations = 학력 */}
           <FormSection
             title="학력 및 교육 이력"
             list={educationList}
@@ -542,7 +564,7 @@ export default function PortfolioRegistration() {
             icon={<GraduationCap size={20} className="text-indigo-500" />}
           />
 
-          {/* 3. 경력 */}
+          {/* 3. experiences = 경력 */}
           <FormSection
             title="경력 (재직/인턴)"
             list={careerList}
@@ -551,7 +573,7 @@ export default function PortfolioRegistration() {
             icon={<Briefcase size={20} className="text-indigo-500" />}
           />
 
-          {/* 4. 활동 (프로젝트 등) */}
+          {/* 4. activities = 대외 활동 */}
           <FormSection
             title="대외 활동 및 프로젝트"
             list={activityList}
@@ -560,7 +582,7 @@ export default function PortfolioRegistration() {
             icon={<Zap size={20} className="text-indigo-500" />}
           />
 
-          {/* 5. 자기소개서 (링크) */}
+          {/* 5. links = 링크 */}
           <FormSection
             title="자기소개서/포스팅 (링크 첨부)"
             list={introList}
@@ -569,7 +591,7 @@ export default function PortfolioRegistration() {
             icon={<BookOpen size={20} className="text-indigo-500" />}
           />
 
-          {/* 6. 자격증 및 스킬 */}
+          {/* 6. certificates = 자격증 */}
           <FormSection
             title="자격증 및 기술 스택"
             list={certList}
@@ -578,17 +600,36 @@ export default function PortfolioRegistration() {
             icon={<Award size={20} className="text-indigo-500" />}
           />
 
-          {/* 최종 저장 버튼 */}
-          <div className="flex justify-center pt-8">
+          {/* ✅ 버튼 2개를 위아래로 배치 (스타일 크게 안 바꿈) */}
+          <div className="flex flex-col items-center pt-8 gap-4">
+            {/* 포트폴리오 저장 */}
             <button
               type="submit"
-              className="px-10 py-4 bg-indigo-600 text-white text-lg font-bold rounded-xl shadow-xl hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.02] active:scale-100 active:bg-indigo-800"
+              className="px-10 py-4 bg-indigo-600 text-white text-lg font-bold rounded-xl shadow-xl hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.02] active:scale-100 active:bg-indigo-800 w-full"
             >
               포트폴리오 최종 저장
+            </button>
+
+            {/* 프로젝트 등록 모달 열기 */}
+            <button
+              type="button"
+              onClick={handleOpenProjectModal} // ✅ 모달 열기
+              className="px-10 py-4 bg-white text-indigo-600 text-lg font-bold rounded-xl shadow-xl border border-indigo-200 hover:bg-indigo-50 transition duration-150 transform hover:scale-[1.02] w-full"
+            >
+              프로젝트 등록하기
             </button>
           </div>
         </form>
       </div>
+
+      {/* ✅ 모달 컴포넌트 추가 */}
+      <ProjectModal
+        isOpen={isProjectModalOpen}
+        onClose={handleCloseProjectModal}
+        onProjectsSaved={(count) =>
+          console.log(`${count}개의 프로젝트가 저장되었습니다.`)
+        }
+      />
     </div>
   );
 }

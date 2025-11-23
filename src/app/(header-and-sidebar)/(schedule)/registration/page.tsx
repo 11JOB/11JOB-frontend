@@ -5,11 +5,12 @@ import { DayPicker } from "react-day-picker";
 import { format, parse } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Calendar, X, PlusCircle, FileText, Trash2 } from "lucide-react";
+
 import { createSchedule } from "@/api/schedule";
 import { CreateScheduleDto, SelectedJob } from "@/types/schedule";
 
 // --------------------
-// 라우터 대체
+// 라우터 대체(기존 유지)
 // --------------------
 const useRouter = () => ({
   push: (path: string) => {
@@ -21,7 +22,7 @@ const useRouter = () => ({
 // 타입
 // --------------------
 interface DetailItem {
-  id: number;
+  id: number; // 프론트에서만 쓰는 id (detailId로 전송)
   title: string;
   content: string;
 }
@@ -239,7 +240,6 @@ export default function ScheduleRegistration() {
     }));
   };
 
-  // ✅ 파일이 {}로 들어가는 문제 방지 버전
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
@@ -264,12 +264,13 @@ export default function ScheduleRegistration() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
+    // ✅ Swagger dto 구조 그대로
     const dtoObject: CreateScheduleDto = {
       companyName: formData.companyName,
       title: formData.mainTitle,
       scheduleDate: format(formData.date, "yyyy-MM-dd"),
       details: formData.details.map((detail) => ({
-        detailId: detail.id, // ✅ dto 스펙 맞춤
+        detailId: detail.id,
         title: detail.title,
         content: detail.content,
       })),
@@ -278,18 +279,20 @@ export default function ScheduleRegistration() {
 
     const submitFormData = new FormData();
 
-    // ✅ dto는 JSON 문자열로 "dto" 키에 넣기
-    submitFormData.append("dto", JSON.stringify(dtoObject));
+    // ✅ 핵심: dto를 JSON Blob으로 append (Swagger처럼 application/json 파트로 인식)
+    submitFormData.append(
+      "dto",
+      new Blob([JSON.stringify(dtoObject)], { type: "application/json" })
+    );
 
-    // ✅ files는 진짜 File 객체만 append 됨
     formData.files.forEach((file) => {
       submitFormData.append("files", file);
     });
 
-    // ✅ 디버깅 필요하면 켜
-    // for (const [k, v] of submitFormData.entries()) {
-    //   console.log("FD:", k, v, v instanceof File);
-    // }
+    // 디버깅 (서버에서 dto가 JSON으로 들어오는지 확인할 때 유용)
+    for (const [k, v] of submitFormData.entries()) {
+      console.log("FormData:", k, v);
+    }
 
     try {
       await createSchedule(submitFormData);

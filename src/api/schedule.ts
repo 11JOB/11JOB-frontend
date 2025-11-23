@@ -1,4 +1,5 @@
-import instance from "./instance"; // 이 파일이 제공해주신 인스턴스를 import 한다고 가정
+// src/api/schedule.ts
+import instance from "./instance";
 import {
   CommonResponse,
   Schedule,
@@ -10,10 +11,7 @@ import {
  * [POST] 새 일정을 추가합니다. (/api/schedules)
  * Request Body Type: multipart/form-data
  */
-export async function createSchedule(
-  data: FormData // FormData 객체를 인수로 받음
-): Promise<Schedule> {
-  // Axios는 FormData 객체를 받으면 Content-Type을 'multipart/form-data'로 자동 변경합니다.
+export async function createSchedule(data: FormData): Promise<Schedule> {
   const response = await instance.post<CommonResponse<Schedule>>(
     "/api/schedules",
     data
@@ -29,9 +27,7 @@ export async function getScheduleList(
 ): Promise<Schedule[]> {
   const response = await instance.get<CommonResponse<Schedule[]>>(
     "/api/schedules",
-    {
-      params, // 쿼리 파라미터 적용
-    }
+    { params }
   );
   return response.data.data;
 }

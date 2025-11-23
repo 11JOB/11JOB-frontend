@@ -1,56 +1,82 @@
+// src/api/portfolio.ts
 import instance from "./instance";
 import {
   CommonResponse,
   Portfolio,
   CreatePortfolioRequest,
   UpdatePortfolioRequest,
-} from "../types/portfolio"; // 타입 파일 경로 조정 필요
+  PortfolioResponse,
+} from "../types/portfolio";
 
 /**
  * [POST] 새 포트폴리오를 추가합니다. (/api/portfolio)
- * @param data 포트폴리오 생성에 필요한 데이터 (name, description)
- * @returns 생성된 Portfolio 객체
+ * Swagger 기준: multipart/form-data
+ * - dto: JSON (required)
+ * - profileImage: file(binary) (optional)
  */
 export async function createPortfolio(
-  data: CreatePortfolioRequest
+  dto: CreatePortfolioRequest,
+  profileImageFile?: File | null
 ): Promise<Portfolio> {
+  const formData = new FormData();
+
+  // ✅ dto를 multipart 안에서 JSON으로 전송
+  formData.append(
+    "dto",
+    new Blob([JSON.stringify(dto)], { type: "application/json" })
+  );
+
+  // ✅ profileImage를 binary 파일로 전송 (선택)
+  if (profileImageFile) {
+    formData.append("profileImage", profileImageFile);
+  }
+
   const response = await instance.post<CommonResponse<Portfolio>>(
     "/api/portfolio",
-    data
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
   );
+
   return response.data.data;
 }
 
 /**
  * [GET] 포트폴리오 정보를 조회합니다. (/api/portfolio)
- * (개인 포트폴리오이므로 ID 없이 토큰 기반으로 조회한다고 추론)
- * @returns 상세 Portfolio 객체
  */
-export async function getPortfolio(): Promise<Portfolio> {
-  const response = await instance.get<CommonResponse<Portfolio>>("/portfolio");
-  return response.data.data;
+export async function getPortfolio(): Promise<PortfolioResponse> {
+  const res = await instance.get<PortfolioResponse>("/api/portfolio");
+  return res.data; // ← 이때만 res.data
 }
 
 /**
  * [PUT] 포트폴리오 정보를 수정합니다. (/api/portfolio)
- * (GET과 마찬가지로 ID 없이 토큰 기반으로 수정한다고 추론)
- * @param data 수정할 내용 (name, description)
- * @returns 수정된 Portfolio 객체
  */
 export async function updatePortfolio(
-  data: UpdatePortfolioRequest
+  dto: UpdatePortfolioRequest,
+  profileImageFile?: File | null
 ): Promise<Portfolio> {
-  // PUT 엔드포인트는 스크린샷에 명시되지 않았으나, CRUD를 완성하기 위해 일반적인 경로로 작성합니다.
+  const formData = new FormData();
+  formData.append(
+    "dto",
+    new Blob([JSON.stringify(dto)], { type: "application/json" })
+  );
+  if (profileImageFile) formData.append("profileImage", profileImageFile);
+
   const response = await instance.put<CommonResponse<Portfolio>>(
     "/api/portfolio",
-    data
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
   );
+
   return response.data.data;
 }
 
 /**
  * [DELETE] 포트폴리오 정보를 삭제합니다. (/api/portfolio)
- * (DELETE 엔드포인트는 스크린샷에 명시되지 않았으나, 일반적인 경로로 작성합니다.)
  */
 export async function deletePortfolio(): Promise<void> {
   await instance.delete("/api/portfolio");

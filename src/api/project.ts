@@ -2,20 +2,18 @@ import instance from "./instance";
 import {
   CommonResponse,
   Project,
-  CreateProjectRequest,
   UpdateProjectRequest,
 } from "../types/project";
 
 /**
  * [POST] 새 프로젝트를 추가합니다. (/api/projects)
  */
-export async function createProject(
-  data: CreateProjectRequest
-): Promise<Project> {
-  const response = await instance.post<CommonResponse<Project>>(
-    "/api/projects",
-    data
-  );
+export async function createProject(formData: FormData) {
+  const response = await instance.post("/api/projects", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data.data;
 }
 
