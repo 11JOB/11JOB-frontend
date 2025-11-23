@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation"; // 현재 경로를 가져오기 위한 usePathname 추가
 // Lucide Icons를 사용합니다.
 import {
   Calendar,
@@ -67,26 +69,20 @@ const SideBarList: SideBarItem[] = [
   },
 ];
 
-// Next.js Link 시뮬레이션을 위한 더미 컴포넌트
-// 실제 Next.js 환경에서는 next/link를 사용하시면 됩니다.
+// Next.js Link 컴포넌트를 사용하도록 수정
 const CustomLink: React.FC<{
   href: string;
   className: string;
   children: React.ReactNode;
 }> = ({ href, className, children }) => {
-  // Canvas 환경에서는 실제 라우팅이 불가능하므로 단순 div와 콘솔 로그로 대체합니다.
   return (
-    <div
-      onClick={() => console.log(`Navigating to: ${href}`)}
-      className={className}
-    >
+    <Link href={href} className={className}>
       {children}
-    </div>
+    </Link>
   );
 };
 
 const Sidebar: React.FC = () => {
-  // 열려있는 서브 메뉴를 관리하는 상태. 배열의 인덱스를 저장합니다.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   // 서브 메뉴 토글 함수
@@ -94,9 +90,8 @@ const Sidebar: React.FC = () => {
     setOpenIndex(openIndex === index ? null : index);
   };
 
-  // 현재 활성 상태의 Link를 시뮬레이션하기 위한 더미 값
-  // 실제 애플리케이션에서는 next/router 등을 사용하여 현재 경로를 가져와야 합니다.
-  const activeLink = "/view";
+  // 현재 활성 상태의 Link를 가져오기 위해 usePathname 사용
+  const activeLink = usePathname();
 
   return (
     // 메인 컨테이너: 약간 좁은 폭 (w-64), 짙은 배경색, 둥근 모서리, 깊은 그림자
