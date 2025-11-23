@@ -10,7 +10,6 @@ export interface CommonResponse<T = any> {
 // 1. Job 객체 정의 (JSON 'content' 배열 요소 기반)
 // ----------------------------------------------------
 
-/** 채용 공고 상세 객체 */
 export interface Job {
   jobId: number;
   requestNo: string;
@@ -18,10 +17,10 @@ export interface Job {
   title: string;
   workAddress: string;
   jobCodeName: string;
-  academicName: string; // 학력
-  careerName: string; // 경력
-  registrationDate: string; // "2025-11-16"
-  expirationDate: string; // "2025-11-16"
+  academicName: string;
+  careerName: string;
+  registrationDate: string;
+  expirationDate: string;
   detailUrl: string;
 }
 
@@ -50,7 +49,7 @@ export interface JobPageResponse {
   totalPages: number;
   pageable: Pageable;
   size: number;
-  content: Job[]; // 핵심 데이터 (Job 객체 배열)
+  content: Job[];
   number: number;
   sort: Sort;
   numberOfElements: number;
@@ -60,15 +59,23 @@ export interface JobPageResponse {
 }
 
 // ----------------------------------------------------
-// 3. 쿼리 파라미터 정의 (스크린샷 기반)
+// 3. API 요청 파라미터 정의
 // ----------------------------------------------------
 
-/** 채용 공고 조회 시 사용되는 쿼리 파라미터 (GET /api/jobs) */
+export interface JobRequestParams {
+  workLocation?: string;
+  careerConditionName?: string;
+  searchKeyword?: string;
+  searchType?: string;
+}
+
+export interface PageableParams {
+  page: number;
+  size: number;
+  sort?: string[];
+}
+
 export interface JobFilterParams {
-  page?: number;
-  size?: number;
-  sort?: string;
-  type?: string;
-  status?: string;
-  keyword?: string;
+  request: JobRequestParams;
+  pageable: PageableParams;
 }

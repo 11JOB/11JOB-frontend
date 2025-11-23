@@ -11,9 +11,9 @@ export default function Header() {
   useEffect(() => {
     // 로컬 스토리지에서 이메일과 토큰 가져오기
     const email = localStorage.getItem("userEmail");
-    const token = localStorage.getItem("accessToken");
+    const accessToken = localStorage.getItem("accessToken");
     setUserEmail(email);
-    setIsLoggedIn(!!token); // 토큰이 있으면 로그인 상태로 설정
+    setIsLoggedIn(!!accessToken); // 토큰이 있으면 로그인 상태로 설정
   }, []);
 
   const handleLogout = () => {

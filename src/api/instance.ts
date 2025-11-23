@@ -13,9 +13,9 @@ const instance = axios.create({
 // 요청 인터셉터: 토큰이 있을 경우 Authorization 헤더 추가
 instance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const accessToken = localStorage.getItem("accessToken"); // accessToken 가져오기
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`; // Authorization 헤더에 추가
     }
     return config;
   },

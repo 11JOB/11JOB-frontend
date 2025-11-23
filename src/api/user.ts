@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import instance from "./instance";
 import {
   CommonResponse,
@@ -39,42 +38,12 @@ export async function login(
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const response = await instance.post("/login", data);
 
-  console.log("Login response (headers / data):", {
-    headers: response.headers,
-    data: response.data,
-  });
+  const accessToken = response.data.accessToken; // accessToken 가져오기
+  const refreshToken = response.data.refreshToken; // refreshToken 가져오기
 
-  // 1) 우선 응답 바디에 토큰이 있는지 확인
-  let accessToken =
-    (response.data as any)?.accessToken ||
-    (response.data as any)?.data?.accessToken;
-  let refreshToken =
-    (response.data as any)?.refreshToken ||
-    (response.data as any)?.data?.refreshToken;
-
-  // 2) 바디에 없으면 헤더에서 꺼내보기
-  if (!accessToken) {
-    const authHeader =
-      response.headers["authorization"] || response.headers["Authorization"];
-    if (authHeader?.startsWith("Bearer ")) {
-      accessToken = authHeader.slice(7);
-    }
-  }
-
-  if (!refreshToken) {
-    refreshToken =
-      (response.headers["refresh-token"] as string) ||
-      (response.headers["refresh"] as string) ||
-      "";
-  }
-
-  if (!accessToken || !refreshToken) {
-    console.error("예상과 다른 로그인 응답:", {
-      headers: response.headers,
-      data: response.data,
-    });
-    throw new Error("로그인 응답 데이터가 올바르지 않습니다.");
-  }
+  // 저장 로직 확인
+  localStorage.setItem("accessToken", accessToken);
+  localStorage.setItem("refreshToken", refreshToken);
 
   return { accessToken, refreshToken };
 }
