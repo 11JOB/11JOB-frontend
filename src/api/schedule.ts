@@ -5,17 +5,38 @@ import {
   Schedule,
   UpdateScheduleRequest,
   ScheduleFilterParams,
+  CreateScheduleDto,
 } from "../types/schedule";
 
 /**
  * [POST] 새 일정을 추가합니다. (/api/schedules)
  * Request Body Type: multipart/form-data
  */
-export async function createSchedule(data: FormData): Promise<Schedule> {
+export async function createSchedule(
+  dto: CreateScheduleDto,
+  files: File[] = []
+): Promise<Schedule> {
+  const formData = new FormData();
+
+  // dto JSON part
+  formData.append(
+    "dto",
+    new Blob([JSON.stringify(dto)], { type: "application/json" })
+  );
+
+  // files parts (key must be "files")
+  files.forEach((file) => formData.append("files", file));
+
   const response = await instance.post<CommonResponse<Schedule>>(
     "/api/schedules",
-    data
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
   );
+
   return response.data.data;
 }
 

@@ -15,8 +15,8 @@ export interface CreateScheduleDto {
   scheduleDate: string; // "yyyy-MM-dd"
   details: {
     detailId?: number; // 생성 시 optional
-    title: string;
-    content: string;
+    detailTitle: string; // ✅ 스웨거 필드명
+    detailContent: string; // ✅ 스웨거 필드명
   }[];
   filesToDelete: number[];
 }

@@ -264,39 +264,43 @@ export default function ScheduleRegistration() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    // ✅ Swagger dto 구조 그대로
+    // ✅ Swagger POST /api/schedules dto 구조에 맞춤
     const dtoObject: CreateScheduleDto = {
       companyName: formData.companyName,
       title: formData.mainTitle,
       scheduleDate: format(formData.date, "yyyy-MM-dd"),
+
+      // ✅ Swagger detail 필드명: detailTitle, detailContent
       details: formData.details.map((detail) => ({
         detailId: detail.id,
-        title: detail.title,
-        content: detail.content,
+        detailTitle: detail.title,
+        detailContent: detail.content,
       })),
+
       filesToDelete: [],
     };
 
     const submitFormData = new FormData();
 
-    // ✅ 핵심: dto를 JSON Blob으로 append (Swagger처럼 application/json 파트로 인식)
+    // ✅ dto를 JSON Blob(application/json 파트)으로 전송
     submitFormData.append(
       "dto",
       new Blob([JSON.stringify(dtoObject)], { type: "application/json" })
     );
 
+    // ✅ files 파트(복수)
     formData.files.forEach((file) => {
       submitFormData.append("files", file);
     });
 
-    // 디버깅 (서버에서 dto가 JSON으로 들어오는지 확인할 때 유용)
+    // 디버깅
     for (const [k, v] of submitFormData.entries()) {
       console.log("FormData:", k, v);
     }
 
     try {
-      await createSchedule(submitFormData);
-      router.push("/schedule/list");
+      await createSchedule(dtoObject, formData.files);
+      //   router.push("/view");
     } catch (error) {
       console.error("일정 등록 중 오류 발생:", error);
       alert("일정 등록에 실패했습니다.");
