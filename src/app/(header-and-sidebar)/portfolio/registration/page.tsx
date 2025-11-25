@@ -2,8 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState, useMemo } from "react";
-// import { useRouter } from "next/navigation"; // ✅ 추가
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Plus,
   X,
@@ -20,8 +19,11 @@ import {
   LinkIcon,
 } from "lucide-react";
 
-import { createPortfolio } from "@/api/portfolio";
-import type { CreatePortfolioRequest } from "@/types/portfolio";
+import { createPortfolio, getPortfolio } from "@/api/portfolio";
+import type {
+  CreatePortfolioRequest,
+  PortfolioResponse,
+} from "@/types/portfolio";
 import ProjectModal from "./projectModal"; // ✅ 모달 컴포넌트 임포트
 
 // --- 1. 타입 정의 ---
@@ -305,18 +307,12 @@ const FormSection: React.FC<FormSectionProps> = ({
 
 // --- 4. 메인 컴포넌트 ---
 export default function PortfolioRegistration() {
-  //   const router = useRouter(); // ✅ 추가
-
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false); // ✅ 모달 상태 추가
-
-  const handleOpenProjectModal = () => setIsProjectModalOpen(true); // ✅ 모달 열기
-  const handleCloseProjectModal = () => setIsProjectModalOpen(false); // ✅ 모달 닫기
-
   const [profile, setProfile] = useState<ProfileState>({
-    name: "홍길동",
-    email: "email@email.com",
-    phone: "010-1234-1234",
-    address: "주소 입력",
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
     profileImage: null,
   });
 
@@ -328,13 +324,79 @@ export default function PortfolioRegistration() {
   const [introList, setIntroList] = useState<DetailList>([]);
   const [certList, setCertList] = useState<DetailList>([]);
 
-  React.useEffect(() => {
-    setEducationList([createNewDetail(1, "edu")]);
-    setCareerList([createNewDetail(1, "career")]);
-    setActivityList([createNewDetail(1, "activity")]);
-    setIntroList([createNewDetail(1, "intro")]);
-    setCertList([createNewDetail(1, "cert")]);
+  // ✅ 포트폴리오 데이터 가져오기
+  useEffect(() => {
+    const fetchPortfolio = async () => {
+      try {
+        const data: PortfolioResponse = await getPortfolio();
+
+        setProfile({
+          name: data.user.name,
+          email: data.user.email,
+          phone: data.phone,
+          address: data.address,
+          profileImage: data.profileImagePath,
+        });
+
+        setEducationList(
+          data.educations.map((edu, index) => ({
+            id: index + 1,
+            institution: edu.institutionName || "",
+            entryDate: edu.startDate || "",
+            exitDate: edu.endDate || "",
+          }))
+        );
+
+        setCareerList(
+          data.experiences.map((exp, index) => ({
+            id: index + 1,
+            institution: exp.institutionName || "",
+            entryDate: exp.startDate || "",
+            exitDate: exp.endDate || "",
+          }))
+        );
+
+        setActivityList(
+          data.activities.map((act, index) => ({
+            id: index + 1,
+            institution: act.institutionName || "",
+            entryDate: act.startDate || "",
+            exitDate: act.endDate || "",
+          }))
+        );
+
+        setIntroList(
+          data.links.map((link, index) => ({
+            id: index + 1,
+            title: link.title || "",
+            link: link.url || "",
+          }))
+        );
+
+        setCertList(
+          data.certificates.map((cert, index) => ({
+            id: index + 1,
+            title: cert.title || "",
+            acquisitionDate: cert.acquireDate || "",
+          }))
+        );
+      } catch (err) {
+        console.error("❌ 포트폴리오 불러오기 실패:", err);
+
+        // 기본값 설정
+        setEducationList([createNewDetail(1, "edu")]);
+        setCareerList([createNewDetail(1, "career")]);
+        setActivityList([createNewDetail(1, "activity")]);
+        setIntroList([createNewDetail(1, "intro")]);
+        setCertList([createNewDetail(1, "cert")]);
+      }
+    };
+
+    fetchPortfolio();
   }, []);
+
+  const handleOpenProjectModal = () => setIsProjectModalOpen(true); // ✅ 모달 열기
+  const handleCloseProjectModal = () => setIsProjectModalOpen(false); // ✅ 모달 닫기
 
   const getNextId = (list: DetailList): number =>
     list.length > 0 ? Math.max(...list.map((item) => item.id)) + 1 : 1;
@@ -391,11 +453,11 @@ export default function PortfolioRegistration() {
 
     setProfileImageFile(file);
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      handleProfileChange("profileImage", reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    const previewUrl = URL.createObjectURL(file);
+    handleProfileChange("profileImage", previewUrl);
+
+    // URL 객체 해제 방지
+    return () => URL.revokeObjectURL(previewUrl);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

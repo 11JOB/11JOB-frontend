@@ -4,7 +4,6 @@ import {
   CommonResponse,
   Portfolio,
   CreatePortfolioRequest,
-  UpdatePortfolioRequest,
   PortfolioResponse,
 } from "../types/portfolio";
 
@@ -50,34 +49,4 @@ export async function createPortfolio(
 export async function getPortfolio(): Promise<PortfolioResponse> {
   const res = await instance.get<PortfolioResponse>("/api/portfolio");
   return res.data; // ← 이때만 res.data
-}
-
-/**
- * [PUT] 포트폴리오 정보를 수정합니다. (/api/portfolio)
- */
-export async function updatePortfolio(
-  dto: UpdatePortfolioRequest,
-  profileImageFile?: File | null
-): Promise<Portfolio> {
-  const formData = new FormData();
-  formData.append(
-    "dto",
-    new Blob([JSON.stringify(dto)], { type: "application/json" })
-  );
-  if (profileImageFile) formData.append("profileImage", profileImageFile);
-
-  const response = await instance.put<CommonResponse<Portfolio>>(
-    "/api/portfolio",
-    formData,
-    { headers: { "Content-Type": "multipart/form-data" } }
-  );
-
-  return response.data.data;
-}
-
-/**
- * [DELETE] 포트폴리오 정보를 삭제합니다. (/api/portfolio)
- */
-export async function deletePortfolio(): Promise<void> {
-  await instance.delete("/api/portfolio");
 }

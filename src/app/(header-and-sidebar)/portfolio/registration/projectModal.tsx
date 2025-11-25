@@ -445,7 +445,7 @@ const ModalShell: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-40 bg-gray-900 bg-opacity-70 flex items-center justify-center backdrop-blur-sm p-4"
+      className="fixed inset-0 z-40 bg-[#70707080] flex items-center justify-center backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div

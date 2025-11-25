@@ -148,7 +148,7 @@ export default function PortfolioView() {
               <div className="bg-white p-6 rounded-2xl shadow-xl border-t-4 border-teal-500">
                 <div className="flex flex-col items-center pb-4 border-b">
                   <img
-                    src={portfolio.profileImagePath}
+                    src={`${process.env.NEXT_PUBLIC_S3_BUCKET_URL}${portfolio.profileImagePath}`}
                     alt="프로필"
                     className="w-32 h-32 object-cover rounded-full shadow-lg border-4 border-white"
                   />
