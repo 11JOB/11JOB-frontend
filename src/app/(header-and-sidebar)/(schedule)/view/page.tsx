@@ -1,173 +1,47 @@
 /**
- * 채용 일정 목록 및 상세 보기 애플리케이션 (Mock Data 전용)
- * - 새로운 JSON 구조에 맞춰 Mock Data를 정의하고 사용합니다.
+ * 채용 일정 목록 및 상세 보기 애플리케이션
+ * - 실제 /api/schedules GET API 를 호출해서 리스트를 보여줍니다.
  * - 목록에서 항목을 클릭하면 상세 페이지로 전환됩니다.
- * - 모든 데이터는 클라이언트 내부에 정의되어 있으며, 외부 데이터베이스 연결은 없습니다.
+ * - 상세 페이지에서 인라인 수정 / 파일 추가 / 파일 삭제 / 일정 삭제가 가능합니다.
  */
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  ChangeEvent,
+} from "react";
 import {
   Calendar,
   Zap,
   FileText,
   ChevronLeft,
   Building2,
-  Link,
+  Link as LinkIcon,
   Download,
+  Pencil,
+  Trash2,
+  Plus,
+  X,
 } from "lucide-react";
+// import { useRouter } from "next/navigation";
 
-// -----------------------------------------------------------------------------
-// 1. 타입 정의 및 유틸리티
-// -----------------------------------------------------------------------------
+import {
+  getScheduleList,
+  deleteSchedule,
+  updateSchedule,
+} from "@/api/schedule";
+import type {
+  Schedule,
+  ScheduleFile,
+  UpdateScheduleRequest,
+} from "@/types/schedule";
 
-/** 첨부 파일 구조 */
-interface FileItem {
-  fileId: number;
-  originalName: string; // 원본 파일 이름 (화면에 표시)
-  filePath: string; // 파일 경로 (목데이터에서는 더미 경로 사용)
-}
-
-/** 세부 항목 구조 */
-interface DetailItem {
-  detailId: number;
-  title: string;
-  content: string;
-}
-
-/** 메인 스케줄 문서 구조 (사용자 요청 JSON 구조 기반) */
-interface ScheduleDocument {
-  scheduleId: number;
-  companyId: number;
-  companyName: string;
-  title: string; // 주요 일정 제목 (기존 mainTitle)
-  scheduleDate: string; // YYYY-MM-DD
-  createdDate: string; // ISO 8601
-  updatedDate: string; // ISO 8601
-  details: DetailItem[];
-  files: FileItem[];
-}
-
-// 오늘 날짜를 기준으로 과거, 현재, 미래 날짜를 계산
+// 오늘 기준 날짜 유틸
 const today = new Date();
-const formatDate = (date: Date) => date.toISOString().split("T")[0];
-const formatDateTimeISO = (date: Date) => date.toISOString();
-
-const dateToday = formatDate(today);
-const dateUpcoming = formatDate(
-  new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000)
-);
-const datePast = formatDate(
-  new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000)
-);
-
-// -----------------------------------------------------------------------------
-// 2. 목 데이터 (Mock Data)
-// -----------------------------------------------------------------------------
-
-const MOCK_SCHEDULES: ScheduleDocument[] = [
-  {
-    scheduleId: 1001,
-    companyId: 1,
-    companyName: "미래 기술 (주)",
-    title: "최종 면접 (임원)",
-    scheduleDate: dateUpcoming, // 미래 일정
-    createdDate: formatDateTimeISO(
-      new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-    ),
-    updatedDate: formatDateTimeISO(
-      new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000)
-    ),
-    details: [
-      { detailId: 10, title: "면접관", content: "김철수 상무, 이영희 이사" },
-      {
-        detailId: 11,
-        title: "준비 사항",
-        content: "5분 자기소개 및 핵심 역량 PT 자료 (10장 이내). 정장 필수.",
-      },
-    ],
-    files: [
-      {
-        fileId: 100,
-        originalName: "이력서_v3.pdf",
-        filePath: "/docs/resume_v3.pdf",
-      },
-      {
-        fileId: 101,
-        originalName: "포트폴리오_2025.zip",
-        filePath: "/docs/portfolio.zip",
-      },
-    ],
-  },
-  {
-    scheduleId: 1002,
-    companyId: 2,
-    companyName: "글로벌 솔루션즈",
-    title: "온라인 코딩 테스트",
-    scheduleDate: dateToday, // 오늘 일정
-    createdDate: formatDateTimeISO(
-      new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000)
-    ),
-    updatedDate: formatDateTimeISO(
-      new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000)
-    ),
-    details: [
-      { detailId: 20, title: "제한 시간", content: "2시간 30분" },
-      {
-        detailId: 21,
-        title: "접속 링크",
-        content: "https://codetest.globalsol.com/start",
-      },
-      { detailId: 22, title: "언어", content: "Python, Java, C++ 중 택 1" },
-    ],
-    files: [],
-  },
-  {
-    scheduleId: 1003,
-    companyId: 3,
-    companyName: "혁신 바이오텍",
-    title: "인적성 검사 (온라인)",
-    scheduleDate: datePast, // 과거 일정
-    createdDate: formatDateTimeISO(
-      new Date(today.getTime() - 20 * 24 * 60 * 60 * 1000)
-    ),
-    updatedDate: formatDateTimeISO(
-      new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000)
-    ),
-    details: [
-      { detailId: 30, title: "결과", content: "합격 (다음 전형 대기)" },
-      {
-        detailId: 31,
-        title: "주의사항",
-        content: "모바일 접속 불가. PC로만 응시 가능",
-      },
-    ],
-    files: [
-      {
-        fileId: 300,
-        originalName: "인적성_안내.pdf",
-        filePath: "/docs/aptitude_guide.pdf",
-      },
-    ],
-  },
-  {
-    scheduleId: 1004,
-    companyId: 1,
-    companyName: "미래 기술 (주)",
-    title: "1차 실무진 면접",
-    scheduleDate: datePast, // 과거 일정 (목록 정렬 테스트용)
-    createdDate: formatDateTimeISO(
-      new Date(today.getTime() - 40 * 24 * 60 * 60 * 1000)
-    ),
-    updatedDate: formatDateTimeISO(
-      new Date(today.getTime() - 35 * 24 * 60 * 60 * 1000)
-    ),
-    details: [
-      { detailId: 40, title: "면접 내용", content: "프로젝트 경험 심층 질문" },
-    ],
-    files: [],
-  },
-];
+const toDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
 
 // -----------------------------------------------------------------------------
 // 3. 컴포넌트: ScheduleCard (일정 카드)
@@ -175,25 +49,21 @@ const MOCK_SCHEDULES: ScheduleDocument[] = [
 
 /** 일정 목록의 개별 카드 */
 const ScheduleCard: React.FC<{
-  schedule: ScheduleDocument;
+  schedule: Schedule;
   onSelect: (id: number) => void;
 }> = ({ schedule, onSelect }) => {
-  // scheduleDate를 기준으로 Date 객체 생성 (시간은 00:00으로 가정)
-  const scheduleDateTime = new Date(`${schedule.scheduleDate}T00:00:00`);
+  const scheduleDateTime = toDate(schedule.scheduleDate);
   const isPast = scheduleDateTime < today;
 
-  // 카드 스타일 정의
   const cardStyle = isPast
     ? "bg-gray-50 border-gray-200 text-gray-500 opacity-80 cursor-pointer"
     : "bg-white border-blue-100 shadow-sm hover:shadow-lg transition duration-200 cursor-pointer";
 
-  // 날짜 포맷 (MM/DD)
   const formattedDate = scheduleDateTime.toLocaleDateString("ko-KR", {
     month: "2-digit",
     day: "2-digit",
   });
 
-  // 요일
   const weekday = scheduleDateTime.toLocaleDateString("ko-KR", {
     weekday: "short",
   });
@@ -262,32 +132,26 @@ const ScheduleCard: React.FC<{
 // -----------------------------------------------------------------------------
 
 const ScheduleListView: React.FC<{
-  schedules: ScheduleDocument[];
+  schedules: Schedule[];
   onSelectSchedule: (id: number) => void;
 }> = ({ schedules, onSelectSchedule }) => {
-  // 메모리에서 날짜와 시간 순으로 정렬 (다가오는 일정 > 과거 일정)
   const sortedSchedules = useMemo(() => {
     const now = new Date();
 
     return [...schedules].sort((a, b) => {
-      // scheduleDate만 사용하며, 정렬을 위해 00:00 시간을 가정
-      const dateA = new Date(`${a.scheduleDate}T00:00:00`);
-      const dateB = new Date(`${b.scheduleDate}T00:00:00`);
+      const dateA = toDate(a.scheduleDate);
+      const dateB = toDate(b.scheduleDate);
 
       const isPastA = dateA < now;
       const isPastB = dateB < now;
 
-      // 1. 과거 일정을 뒤로 보냄
       if (isPastA !== isPastB) {
         return isPastA ? 1 : -1;
       }
-
-      // 2. 날짜 순으로 정렬 (오름차순: 다가오는 순)
       return dateA.getTime() - dateB.getTime();
     });
   }, [schedules]);
 
-  // 날짜별로 그룹화
   const groupedSchedules = useMemo(() => {
     return sortedSchedules.reduce((acc, schedule) => {
       const dateKey = schedule.scheduleDate;
@@ -296,18 +160,16 @@ const ScheduleListView: React.FC<{
       }
       acc[dateKey].push(schedule);
       return acc;
-    }, {} as Record<string, ScheduleDocument[]>);
+    }, {} as Record<string, Schedule[]>);
   }, [sortedSchedules]);
 
-  /** DateGroup 컴포넌트: 날짜별 그룹 */
   const DateGroup: React.FC<{
     date: string;
-    items: ScheduleDocument[];
+    items: Schedule[];
   }> = ({ date, items }) => {
-    const dateObj = new Date(date + "T00:00:00");
+    const dateObj = toDate(date);
     const isToday = today.toDateString() === dateObj.toDateString();
 
-    // 날짜 포맷 (YYYY년 MM월 DD일 요일)
     const formattedDate = dateObj.toLocaleDateString("ko-KR", {
       year: "numeric",
       month: "long",
@@ -352,17 +214,39 @@ const ScheduleListView: React.FC<{
 };
 
 // -----------------------------------------------------------------------------
-// 5. 컴포넌트: ScheduleDetailView (상세 뷰)
+// 5. 컴포넌트: ScheduleDetailView (상세 뷰 + 인라인 수정 + 파일 추가/삭제)
 // -----------------------------------------------------------------------------
 
+type UpdatePayload = {
+  draft: Schedule;
+  filesToUpload: File[];
+  filesToDelete: number[];
+};
+
 const ScheduleDetailView: React.FC<{
-  schedule: ScheduleDocument;
+  schedule: Schedule;
   onBack: () => void;
-}> = ({ schedule, onBack }) => {
-  const scheduleDateObj = new Date(schedule.scheduleDate + "T00:00:00");
+  onUpdate: (payload: UpdatePayload) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
+}> = ({ schedule, onBack, onUpdate, onDelete }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState<Schedule>(schedule);
+  const [filesToDelete, setFilesToDelete] = useState<number[]>([]);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    setDraft(schedule);
+    setIsEditing(false);
+    setFilesToDelete([]);
+    setNewFiles([]);
+  }, [schedule]);
+
+  const scheduleDateObj = toDate(draft.scheduleDate);
   const isPast = scheduleDateObj < today;
 
-  // 날짜 포맷 (YYYY년 MM월 DD일 요일)
   const formattedDate = scheduleDateObj.toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "long",
@@ -370,7 +254,6 @@ const ScheduleDetailView: React.FC<{
     weekday: "long",
   });
 
-  // 생성/업데이트 날짜 포맷
   const formatDateTime = (iso: string) => {
     const date = new Date(iso);
     return date.toLocaleDateString("ko-KR", {
@@ -382,33 +265,165 @@ const ScheduleDetailView: React.FC<{
     });
   };
 
+  const toggleDeleteFile = (fileId: number) => {
+    setFilesToDelete((prev) =>
+      prev.includes(fileId)
+        ? prev.filter((id) => id !== fileId)
+        : [...prev, fileId]
+    );
+  };
+
+  const handleNewFilesChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const filesArray = Array.from(e.target.files);
+    setNewFiles((prev) => [...prev, ...filesArray]);
+    e.target.value = "";
+  };
+
+  const handleRemoveNewFile = (index: number) => {
+    setNewFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleClickDelete = async () => {
+    if (
+      !confirm(
+        `정말로 이 일정을 삭제하시겠습니까?\n\n[${schedule.companyName}] ${schedule.title}`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      await onDelete(schedule.scheduleId);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await onUpdate({
+        draft,
+        filesToUpload: newFiles,
+        filesToDelete,
+      });
+      setIsEditing(false);
+      setFilesToDelete([]);
+      setNewFiles([]);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <button
-        onClick={onBack}
-        className="flex items-center text-blue-600 hover:text-blue-800 transition duration-150 font-medium p-2 -ml-2 rounded-lg hover:bg-blue-50"
-      >
-        <ChevronLeft className="w-5 h-5 mr-1" />
-        목록으로 돌아가기
-      </button>
+      {/* 상단 네비 + 액션 버튼들 */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="flex items-center text-blue-600 hover:text-blue-800 transition duration-150 font-medium p-2 -ml-2 rounded-lg hover:bg-blue-50"
+        >
+          <ChevronLeft className="w-5 h-5 mr-1" />
+          목록으로 돌아가기
+        </button>
+
+        <div className="flex items-center space-x-2">
+          {isEditing ? (
+            <>
+              <button
+                onClick={() => {
+                  setDraft(schedule);
+                  setIsEditing(false);
+                  setFilesToDelete([]);
+                  setNewFiles([]);
+                }}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-400 text-gray-600 hover:bg-gray-50"
+                disabled={saving}
+              >
+                수정 취소
+              </button>
+              <button
+                onClick={handleSave}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-500 text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-60"
+                disabled={saving}
+              >
+                <Pencil className="w-4 h-4 mr-1" />
+                {saving ? "저장 중..." : "저장"}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-500 text-blue-600 hover:bg-blue-50"
+              >
+                <Pencil className="w-4 h-4 mr-1" />
+                수정하기
+              </button>
+              <button
+                onClick={handleClickDelete}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border border-red-500 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                disabled={deleting}
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                {deleting ? "삭제 중..." : "일정 삭제"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* 메인 정보 헤더 */}
       <header className="border-b pb-4 space-y-2">
         <div className="flex items-center space-x-3">
           <Building2 className="w-6 h-6 text-gray-500 flex-shrink-0" />
-          <h2 className="text-xl font-semibold text-gray-700">
-            {schedule.companyName}
-          </h2>
+          {isEditing ? (
+            <input
+              className="border rounded-md px-2 py-1 text-sm w-full max-w-xs"
+              value={draft.companyName}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, companyName: e.target.value }))
+              }
+            />
+          ) : (
+            <h2 className="text-xl font-semibold text-gray-700">
+              {schedule.companyName}
+            </h2>
+          )}
         </div>
-        <h1 className="text-4xl font-extrabold text-gray-900">
-          {schedule.title}
-        </h1>
+
+        {isEditing ? (
+          <input
+            className="text-3xl sm:text-4xl font-extrabold text-gray-900 border-b border-gray-200 mt-2 px-1 py-1 w-full"
+            value={draft.title}
+            onChange={(e) =>
+              setDraft((prev) => ({ ...prev, title: e.target.value }))
+            }
+          />
+        ) : (
+          <h1 className="text-4xl font-extrabold text-gray-900">
+            {schedule.title}
+          </h1>
+        )}
       </header>
 
       {/* 일정 날짜 및 상태 */}
       <div className="flex items-center space-x-4 bg-blue-50 p-4 rounded-xl border border-blue-200">
         <Calendar className="w-6 h-6 text-blue-600" />
-        <div className="text-lg font-bold text-blue-800">{formattedDate}</div>
+        {isEditing ? (
+          <input
+            type="date"
+            className="border rounded-md px-2 py-1 text-sm"
+            value={draft.scheduleDate}
+            onChange={(e) =>
+              setDraft((prev) => ({ ...prev, scheduleDate: e.target.value }))
+            }
+          />
+        ) : (
+          <div className="text-lg font-bold text-blue-800">{formattedDate}</div>
+        )}
         <span
           className={`text-sm font-bold px-3 py-1 rounded-full ml-auto ${
             isPast ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
@@ -425,48 +440,179 @@ const ScheduleDetailView: React.FC<{
           세부 준비 사항
         </h3>
         <div className="space-y-4">
-          {schedule.details.map((detail) => (
+          {draft.details.map((detail, idx) => (
             <div
               key={detail.detailId}
-              className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+              className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2"
             >
-              <p className="text-sm font-semibold text-gray-700 mb-1">
-                {detail.title}
-              </p>
-              <p className="text-base text-gray-600 whitespace-pre-wrap">
-                {detail.content}
-              </p>
+              {isEditing ? (
+                <>
+                  <input
+                    className="text-sm font-semibold text-gray-700 border rounded-md px-2 py-1 w-full"
+                    value={detail.title}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setDraft((prev) => ({
+                        ...prev,
+                        details: prev.details.map((d, i) =>
+                          i === idx ? { ...d, title: value } : d
+                        ),
+                      }));
+                    }}
+                  />
+                  <textarea
+                    className="text-base text-gray-600 whitespace-pre-wrap border rounded-md px-2 py-1 w-full min-h-[80px]"
+                    value={detail.content}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setDraft((prev) => ({
+                        ...prev,
+                        details: prev.details.map((d, i) =>
+                          i === idx ? { ...d, content: value } : d
+                        ),
+                      }));
+                    }}
+                  />
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">
+                    {detail.title}
+                  </p>
+                  <p className="text-base text-gray-600 whitespace-pre-wrap">
+                    {detail.content}
+                  </p>
+                </>
+              )}
             </div>
           ))}
         </div>
       </section>
 
-      {/* 첨부 파일 */}
-      {schedule.files.length > 0 && (
-        <section className="space-y-4 pt-4 border-t">
-          <h3 className="text-2xl font-bold text-gray-800 border-b pb-2 flex items-center">
-            <FileText className="w-5 h-5 mr-2 text-purple-600" />
-            첨부 파일 ({schedule.files.length}개)
-          </h3>
-          <ul className="space-y-2">
-            {schedule.files.map((file) => (
+      {/* 첨부 파일 (기존 + 삭제 표시 + 새 파일 추가) */}
+      <section className="space-y-4 pt-4 border-t">
+        <h3 className="text-2xl font-bold text-gray-800 border-b pb-2 flex items-center">
+          <FileText className="w-5 h-5 mr-2 text-purple-600" />
+          첨부 파일
+        </h3>
+
+        {/* 기존 파일 목록 */}
+        <ul className="space-y-2">
+          {schedule.files.length === 0 && (
+            <li className="text-sm text-gray-400">등록된 파일이 없습니다.</li>
+          )}
+
+          {schedule.files.map((file: ScheduleFile) => {
+            const markedForDelete = filesToDelete.includes(file.fileId);
+            return (
               <li
                 key={file.fileId}
-                className="flex items-center justify-between bg-purple-50 p-3 rounded-lg border border-purple-200"
+                className={`flex items-center justify-between p-3 rounded-lg border ${
+                  markedForDelete
+                    ? "bg-red-50 border-red-200"
+                    : "bg-purple-50 border-purple-200"
+                }`}
               >
-                <span className="text-sm font-medium text-purple-800 flex items-center">
-                  <Link className="w-4 h-4 mr-2 text-purple-600" />
-                  {file.originalName}
+                <span className="text-sm font-medium flex items-center">
+                  <LinkIcon
+                    className={`w-4 h-4 mr-2 ${
+                      markedForDelete ? "text-red-500" : "text-purple-600"
+                    }`}
+                  />
+                  <span
+                    className={
+                      markedForDelete
+                        ? "line-through text-red-600"
+                        : "text-purple-800"
+                    }
+                  >
+                    {file.originalName}
+                  </span>
                 </span>
-                <button className="flex items-center text-purple-600 hover:text-purple-800 text-sm font-bold transition">
-                  <Download className="w-4 h-4 mr-1" />
-                  다운로드 (더미)
-                </button>
+
+                <div className="flex items-center space-x-2">
+                  {!markedForDelete && (
+                    <button
+                      type="button"
+                      className="flex items-center text-purple-600 hover:text-purple-800 text-xs font-bold"
+                      onClick={() => {
+                        // 실제 파일 다운로드 URL에 맞게 변경
+                        window.open(file.filePath, "_blank");
+                      }}
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      열기
+                    </button>
+                  )}
+
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => toggleDeleteFile(file.fileId)}
+                      className={`flex items-center text-xs font-bold ${
+                        markedForDelete
+                          ? "text-gray-600 hover:text-gray-800"
+                          : "text-red-600 hover:text-red-800"
+                      }`}
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      {markedForDelete ? "삭제 취소" : "삭제"}
+                    </button>
+                  )}
+                </div>
               </li>
-            ))}
-          </ul>
-        </section>
-      )}
+            );
+          })}
+        </ul>
+
+        {/* 새로 추가할 파일 목록 */}
+        {isEditing && (
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleNewFilesChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border border-dashed border-purple-400 text-purple-600 hover:bg-purple-50"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                파일 추가
+              </button>
+              {newFiles.length > 0 && (
+                <span className="text-xs text-gray-500">
+                  새로 추가된 파일 {newFiles.length}개
+                </span>
+              )}
+            </div>
+
+            {newFiles.length > 0 && (
+              <ul className="space-y-1 pl-1">
+                {newFiles.map((file, idx) => (
+                  <li
+                    key={`${file.name}-${idx}`}
+                    className="flex items-center justify-between text-xs bg-white border border-purple-100 rounded-md px-2 py-1"
+                  >
+                    <span className="truncate mr-2">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveNewFile(idx)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* 메타 데이터 */}
       <footer className="pt-4 border-t text-sm text-gray-500 space-y-1">
@@ -485,24 +631,95 @@ const ScheduleDetailView: React.FC<{
 // -----------------------------------------------------------------------------
 
 export default function JobSchedulerApp() {
-  const [schedules] = useState<ScheduleDocument[]>(MOCK_SCHEDULES);
+  //   const router = useRouter();
+
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(
     null
   );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // 현재 선택된 스케줄 객체 찾기
+  // ✅ 실제 API 호출
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const data = await getScheduleList({
+          page: 0,
+          size: 100,
+        });
+
+        setSchedules(data);
+      } catch (err) {
+        console.error("❌ 일정 목록 조회 실패:", err);
+        setError("일정 목록을 불러오지 못했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSchedules();
+  }, []);
+
   const selectedSchedule = useMemo(() => {
+    if (!Array.isArray(schedules)) return undefined;
+    if (selectedScheduleId == null) return undefined;
     return schedules.find((s) => s.scheduleId === selectedScheduleId);
   }, [selectedScheduleId, schedules]);
 
-  // 목록으로 돌아가기 핸들러
   const handleBack = () => {
     setSelectedScheduleId(null);
   };
 
-  // 상세 보기 핸들러
   const handleSelectSchedule = (id: number) => {
     setSelectedScheduleId(id);
+  };
+
+  const handleUpdateSchedule = async ({
+    draft,
+    filesToUpload,
+    filesToDelete,
+  }: UpdatePayload) => {
+    try {
+      const dto: UpdateScheduleRequest = {
+        companyName: draft.companyName,
+        title: draft.title,
+        scheduleDate: draft.scheduleDate,
+        details: draft.details.map((d) => ({
+          detailId: d.detailId,
+          detailTitle: d.title,
+          detailContent: d.content,
+        })),
+        filesToDelete,
+      };
+
+      // ✅ 서버에 수정 요청만 보냄 (별도 반환값 안 사용)
+      await updateSchedule(draft.scheduleId, dto, filesToUpload);
+
+      // ✅ 수정 후 리스트를 다시 조회해서 상태를 최신으로 맞춤
+      const refreshed = await getScheduleList({ page: 0, size: 100 });
+      setSchedules(refreshed);
+
+      alert("일정이 수정되었습니다.");
+    } catch (err) {
+      console.error("❌ 일정 수정 실패:", err);
+      alert("일정을 수정하지 못했습니다. 다시 시도해 주세요.");
+    }
+  };
+
+  const handleDeleteSchedule = async (id: number) => {
+    try {
+      await deleteSchedule(id);
+      setSchedules((prev) => prev.filter((s) => s.scheduleId !== id));
+      setSelectedScheduleId(null);
+      alert("일정이 삭제되었습니다.");
+    } catch (err) {
+      console.error("❌ 일정 삭제 실패:", err);
+      alert("일정을 삭제하지 못했습니다. 다시 시도해 주세요.");
+    }
   };
 
   return (
@@ -516,18 +733,33 @@ export default function JobSchedulerApp() {
           </h1>
           <p className="text-base text-gray-500 mt-1">
             {selectedSchedule
-              ? "선택된 일정의 상세 정보를 확인합니다."
-              : "등록된 샘플 일정을 시간 순서로 확인합니다."}
+              ? "선택된 일정의 상세 정보를 확인하고 수정합니다."
+              : "등록된 일정을 시간 순서로 확인합니다."}
           </p>
         </header>
 
-        {/* 본문 (목록 또는 상세 보기) */}
-        {selectedSchedule ? (
-          <ScheduleDetailView schedule={selectedSchedule} onBack={handleBack} />
-        ) : (
+        {/* 본문 */}
+        {loading && <p className="text-gray-500">일정 목록을 불러오는 중...</p>}
+
+        {!loading && error && <p className="text-red-500 text-sm">{error}</p>}
+
+        {!loading && !error && !selectedSchedule && schedules.length === 0 && (
+          <p className="text-gray-400 text-sm">등록된 일정이 없습니다.</p>
+        )}
+
+        {!loading && !error && !selectedSchedule && schedules.length > 0 && (
           <ScheduleListView
             schedules={schedules}
             onSelectSchedule={handleSelectSchedule}
+          />
+        )}
+
+        {!loading && !error && selectedSchedule && (
+          <ScheduleDetailView
+            schedule={selectedSchedule}
+            onBack={handleBack}
+            onUpdate={handleUpdateSchedule}
+            onDelete={handleDeleteSchedule}
           />
         )}
       </div>
