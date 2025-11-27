@@ -370,56 +370,6 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 };
 
 // -----------------------------------------------------------
-// 6. Page: ResetPasswordPage (비밀번호 재설정 페이지)
-// -----------------------------------------------------------
-
-const ResetPasswordPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
-  const [email, setEmail] = useState("");
-  const canSubmit = useMemo(() => email.trim().includes("@"), [email]);
-
-  const handleResetSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
-    // TODO: 실제 비밀번호 재설정 API 연동
-    console.log("Reset Password for:", email);
-    alert(`[${email}]로 비밀번호 재설정 이메일이 전송되었습니다. (시뮬레이션)`);
-    onBack();
-  };
-
-  return (
-    <div className="rounded-2xl bg-white shadow-xl ring-1 ring-gray-100 p-8 w-full transition-opacity duration-300">
-      <ViewHeader title="비밀번호 재설정" onBack={onBack} showBack={true} />
-
-      <p className="text-gray-600 mb-6 text-left text-sm">
-        가입 시 사용했던 이메일 주소를 입력해주세요. 비밀번호 재설정 링크를
-        보내드립니다.
-      </p>
-
-      <form onSubmit={handleResetSubmit} className="space-y-6">
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-700 text-left">
-            이메일
-          </label>
-          <Input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="이메일 주소를 입력해주세요"
-            type="email"
-          />
-        </div>
-        <Button
-          type="submit"
-          disabled={!canSubmit}
-          className={clsx({ "bg-black": canSubmit })}
-        >
-          재설정 이메일 받기
-        </Button>
-      </form>
-    </div>
-  );
-};
-
-// -----------------------------------------------------------
 // 7. Page: SignInPage (로그인 페이지)
 // -----------------------------------------------------------
 
@@ -511,13 +461,6 @@ const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
         >
           회원가입
         </span>
-        <span className="text-gray-400">|</span>
-        <span
-          className="text-gray-600 hover:text-black cursor-pointer transition duration-150 font-medium"
-          onClick={() => handleNavigation("reset")} // 뷰 전환: 비밀번호 찾기 (라우팅 시뮬레이션)
-        >
-          비밀번호 찾기
-        </span>
       </div>
     </div>
   );
@@ -545,9 +488,6 @@ export default function App() {
       case "signup":
         // SignUpPage 컴포넌트를 렌더링하고, 뒤로가기 시 'signin'으로 이동
         return <SignUpPage onBack={() => handleNavigation("signin")} />;
-
-      case "reset":
-        return <ResetPasswordPage onBack={() => handleNavigation("signin")} />;
 
       default:
         return null;
