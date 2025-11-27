@@ -1,6 +1,6 @@
 "use client";
 
-import React, { FC, useState, useMemo } from "react";
+import React, { FC, useState, useMemo, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -11,47 +11,38 @@ import {
   subMonths,
   isSameMonth,
   isSameDay,
-  //   getDay,
   getDate,
-  //   getDaysInMonth,
 } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ChevronLeft, ChevronRight } from "lucide-react"; // 아이콘 사용
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 
-// Calendar data interface
+// ✅ API
+import { getScheduleList } from "@/api/schedule";
+import type { Schedule } from "@/types/schedule";
+
+// -----------------------------------------------------------------------------
+// 타입 정의
+// -----------------------------------------------------------------------------
+
+// 캘린더에 표시할 이벤트 1개
 interface EventItem {
+  scheduleId: number; // ✅ 클릭 시 상세 이동에 사용할 ID
   text: string;
   color: string;
 }
 
+// 날짜(yyyy-MM-dd)별 이벤트 리스트
 interface CurrentMonthEvents {
   [key: string]: EventItem[];
 }
 
-// 캘린더 더미 이벤트 데이터 (2025년 10월, 11월 기준)
-const eventData: CurrentMonthEvents = {
-  // 10월 이벤트
-  "2025-10-27": [
-    { text: "금융 자문 회의", color: "bg-yellow-200" },
-    { text: "할 일 마감", color: "bg-red-200" },
-    { text: "추가 미팅", color: "bg-green-200" },
-  ],
-  "2025-10-29": [{ text: "면접 w/ Figma", color: "bg-pink-200" }],
-  "2025-10-31": [
-    { text: "할로윈 파티", color: "bg-blue-200" },
-    { text: "발표 준비", color: "bg-purple-200" },
-    { text: "팀 회의", color: "bg-indigo-200" },
-  ],
-  // 11월 이벤트
-  "2025-11-03": [{ text: "미팅 w/ Mac", color: "bg-pink-200" }],
-  "2025-11-05": [{ text: "프로젝트 마감", color: "bg-red-400" }],
-  "2025-11-10": [{ text: "중요 면접", color: "bg-teal-200" }],
-  "2025-11-20": [{ text: "개발 컨퍼런스", color: "bg-blue-300" }],
-};
-
 const getDateKey = (date: Date): string => format(date, "yyyy-MM-dd");
 
-// 캘린더 헤더 컴포넌트
+// -----------------------------------------------------------------------------
+// 캘린더 헤더
+// -----------------------------------------------------------------------------
+
 interface HeaderProps {
   currentMonth: Date;
   prevMonth: () => void;
@@ -86,15 +77,18 @@ const CalendarHeader: FC<HeaderProps> = ({
   );
 };
 
+// -----------------------------------------------------------------------------
 // 캘린더 날짜 계산 로직
+// -----------------------------------------------------------------------------
+
 const useCalendarData = (currentMonth: Date) => {
   return useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { locale: ko, weekStartsOn: 0 }); // 일요일부터 시작
+    const startDate = startOfWeek(monthStart, { locale: ko, weekStartsOn: 0 });
     const endDate = endOfWeek(monthEnd, { locale: ko, weekStartsOn: 0 });
 
-    const days = [];
+    const days: Date[] = [];
     let day = startDate;
 
     while (day <= endDate) {
@@ -107,37 +101,46 @@ const useCalendarData = (currentMonth: Date) => {
   }, [currentMonth]);
 };
 
-// 캘린더 셀 (Day) 컴포넌트
+// -----------------------------------------------------------------------------
+// DayCell
+// -----------------------------------------------------------------------------
+
 interface DayCellProps {
   day: Date;
   currentMonth: Date;
   today: Date;
+  eventsByDate: CurrentMonthEvents;
+  onEventClick: (scheduleId: number) => void;
 }
 
-const DayCell: FC<DayCellProps> = ({ day, currentMonth, today }) => {
+const DayCell: FC<DayCellProps> = ({
+  day,
+  currentMonth,
+  today,
+  eventsByDate,
+  onEventClick,
+}) => {
   const key = getDateKey(day);
-  const events: EventItem[] = eventData[key] || [];
+  const events: EventItem[] = eventsByDate[key] || [];
 
   const isOutside = !isSameMonth(day, currentMonth);
   const isToday = isSameDay(day, today);
 
-  // 날짜 스타일링
   const dateClasses = `
-        absolute top-1 left-2 text-sm font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center transition-colors duration-200
-        ${
-          isOutside
-            ? "text-gray-400"
-            : isToday
-            ? "bg-orange-500 text-white shadow-lg z-10"
-            : "text-gray-800 hover:bg-gray-100"
-        }
-    `;
+    absolute top-1 left-2 text-sm font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center transition-colors duration-200
+    ${
+      isOutside
+        ? "text-gray-400"
+        : isToday
+        ? "bg-orange-500 text-white shadow-lg z-10"
+        : "text-gray-800 hover:bg-gray-100"
+    }
+  `;
 
-  // 셀 배경 및 경계 스타일링
   const cellClasses = `
-        align-top p-0.5 relative border border-gray-100 bg-white min-h-24 transition-colors duration-300
-        ${isOutside ? "bg-gray-50 opacity-70" : "hover:bg-indigo-50"}
-    `;
+    align-top p-0.5 relative border border-gray-100 bg-white min-h-24 transition-colors duration-300
+    ${isOutside ? "bg-gray-50 opacity-70" : "hover:bg-indigo-50"}
+  `;
 
   return (
     <div className={cellClasses} style={{ height: "120px" }}>
@@ -146,15 +149,17 @@ const DayCell: FC<DayCellProps> = ({ day, currentMonth, today }) => {
 
       {/* 이벤트 목록 */}
       <div className="flex flex-col gap-0.5 mt-8 px-1 h-[calc(100%-32px)] overflow-hidden">
-        {events.slice(0, 3).map((event: EventItem, i: number) => (
-          <div
+        {events.slice(0, 3).map((event, i) => (
+          <button
             key={i}
-            className={`text-[10px] truncate rounded-sm px-1.5 py-0.5 ${event.color} text-gray-800 font-normal shadow-sm transition-all duration-150 hover:shadow-md cursor-pointer`}
+            type="button"
+            onClick={() => onEventClick(event.scheduleId)}
+            className={`text-[10px] text-left truncate rounded-sm px-1.5 py-0.5 ${event.color} text-gray-800 font-normal shadow-sm transition-all duration-150 hover:shadow-md cursor-pointer`}
             style={{ lineHeight: "1.2" }}
             title={event.text}
           >
             {event.text}
-          </div>
+          </button>
         ))}
         {events.length > 3 && (
           <span className="text-xs text-indigo-500 hover:text-indigo-600 font-normal cursor-pointer mt-1 px-1">
@@ -166,24 +171,77 @@ const DayCell: FC<DayCellProps> = ({ day, currentMonth, today }) => {
   );
 };
 
+// -----------------------------------------------------------------------------
+// 메인 컴포넌트
+// -----------------------------------------------------------------------------
+
 export default function App() {
+  const router = useRouter();
   const today: Date = useMemo(() => new Date(), []);
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(today));
 
-  // 달력 데이터 계산
+  const [eventsByDate, setEventsByDate] = useState<CurrentMonthEvents>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const calendarDays = useCalendarData(currentMonth);
 
-  // 네비게이션 함수
-  const nextMonth = () => {
-    setCurrentMonth(addMonths(currentMonth, 1));
-  };
+  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
 
-  const prevMonth = () => {
-    setCurrentMonth(subMonths(currentMonth, 1));
-  };
-
-  // 요일 이름 배열
   const daysOfWeek = ["일", "월", "화", "수", "목", "금", "토"];
+
+  // ✅ 일정 로딩
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const list: Schedule[] = await getScheduleList({ page: 0, size: 200 });
+
+        const map: CurrentMonthEvents = {};
+
+        list.forEach((s) => {
+          if (!s.scheduleDate) return;
+
+          const dateObj = new Date(`${s.scheduleDate}T00:00:00`);
+
+          // 현재 달만 보여주기
+          if (
+            dateObj.getFullYear() !== currentMonth.getFullYear() ||
+            dateObj.getMonth() !== currentMonth.getMonth()
+          ) {
+            return;
+          }
+
+          const key = s.scheduleDate;
+          if (!map[key]) map[key] = [];
+
+          map[key].push({
+            scheduleId: s.scheduleId, // ✅ 여기!
+            text: `${s.companyName} - ${s.title}`,
+            color: "bg-indigo-100",
+          });
+        });
+
+        setEventsByDate(map);
+      } catch (err) {
+        console.error("❌ 달력 일정 조회 실패:", err);
+        setError("달력 데이터를 불러오지 못했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSchedules();
+  }, [currentMonth]);
+
+  // ✅ 이벤트 클릭 시 상세 페이지로 이동
+  const handleEventClick = (scheduleId: number) => {
+    // 필요에 따라 경로 수정: /schedule/view?scheduleId=... 기준
+    router.push(`/view?scheduleId=${scheduleId}`);
+  };
 
   return (
     <div className="min-h-screen p-4 sm:p-8 bg-gray-50 font-sans">
@@ -198,16 +256,20 @@ export default function App() {
               {format(today, "yyyy년 MM월 dd일 EEEE", { locale: ko })}
             </span>
           </h2>
+          {loading && (
+            <p className="mt-3 text-sm text-gray-500">
+              달력 데이터를 불러오는 중입니다...
+            </p>
+          )}
+          {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
         </header>
 
-        {/* 캘린더 네비게이션 */}
         <CalendarHeader
           currentMonth={currentMonth}
           prevMonth={prevMonth}
           nextMonth={nextMonth}
         />
 
-        {/* 캘린더 테이블 */}
         <div className="shadow-xl rounded-lg overflow-hidden border border-gray-200">
           {/* 요일 헤더 */}
           <div className="grid grid-cols-7 bg-indigo-600 text-white font-medium text-center">
@@ -235,6 +297,8 @@ export default function App() {
                 day={day}
                 currentMonth={currentMonth}
                 today={today}
+                eventsByDate={eventsByDate}
+                onEventClick={handleEventClick}
               />
             ))}
           </div>

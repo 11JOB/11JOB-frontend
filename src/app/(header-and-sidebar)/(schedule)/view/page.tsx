@@ -1,9 +1,3 @@
-/**
- * 채용 일정 목록 및 상세 보기 애플리케이션
- * - 실제 /api/schedules GET API 를 호출해서 리스트를 보여줍니다.
- * - 목록에서 항목을 클릭하면 상세 페이지로 전환됩니다.
- * - 상세 페이지에서 인라인 수정 / 파일 추가 / 파일 삭제 / 일정 삭제가 가능합니다.
- */
 "use client";
 
 import React, {
@@ -26,7 +20,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
-// import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   getScheduleList,
@@ -44,10 +38,9 @@ const today = new Date();
 const toDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
 
 // -----------------------------------------------------------------------------
-// 3. 컴포넌트: ScheduleCard (일정 카드)
+// 일정 카드
 // -----------------------------------------------------------------------------
 
-/** 일정 목록의 개별 카드 */
 const ScheduleCard: React.FC<{
   schedule: Schedule;
   onSelect: (id: number) => void;
@@ -128,7 +121,7 @@ const ScheduleCard: React.FC<{
 };
 
 // -----------------------------------------------------------------------------
-// 4. 컴포넌트: ScheduleListView (목록 뷰)
+// 일정 목록 뷰
 // -----------------------------------------------------------------------------
 
 const ScheduleListView: React.FC<{
@@ -145,9 +138,11 @@ const ScheduleListView: React.FC<{
       const isPastA = dateA < now;
       const isPastB = dateB < now;
 
+      // 과거 일정은 뒤로
       if (isPastA !== isPastB) {
         return isPastA ? 1 : -1;
       }
+      // 같은 그룹 안에서는 날짜 오름차순
       return dateA.getTime() - dateB.getTime();
     });
   }, [schedules]);
@@ -155,9 +150,7 @@ const ScheduleListView: React.FC<{
   const groupedSchedules = useMemo(() => {
     return sortedSchedules.reduce((acc, schedule) => {
       const dateKey = schedule.scheduleDate;
-      if (!acc[dateKey]) {
-        acc[dateKey] = [];
-      }
+      if (!acc[dateKey]) acc[dateKey] = [];
       acc[dateKey].push(schedule);
       return acc;
     }, {} as Record<string, Schedule[]>);
@@ -214,7 +207,7 @@ const ScheduleListView: React.FC<{
 };
 
 // -----------------------------------------------------------------------------
-// 5. 컴포넌트: ScheduleDetailView (상세 뷰 + 인라인 수정 + 파일 추가/삭제)
+// 상세 + 인라인 수정 + 파일 추가/삭제
 // -----------------------------------------------------------------------------
 
 type UpdatePayload = {
@@ -489,14 +482,14 @@ const ScheduleDetailView: React.FC<{
         </div>
       </section>
 
-      {/* 첨부 파일 (기존 + 삭제 표시 + 새 파일 추가) */}
+      {/* 첨부 파일 */}
       <section className="space-y-4 pt-4 border-t">
         <h3 className="text-2xl font-bold text-gray-800 border-b pb-2 flex items-center">
           <FileText className="w-5 h-5 mr-2 text-purple-600" />
           첨부 파일
         </h3>
 
-        {/* 기존 파일 목록 */}
+        {/* 기존 파일 */}
         <ul className="space-y-2">
           {schedule.files.length === 0 && (
             <li className="text-sm text-gray-400">등록된 파일이 없습니다.</li>
@@ -565,7 +558,7 @@ const ScheduleDetailView: React.FC<{
           })}
         </ul>
 
-        {/* 새로 추가할 파일 목록 */}
+        {/* 새로 추가할 파일 */}
         {isEditing && (
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
@@ -627,20 +620,22 @@ const ScheduleDetailView: React.FC<{
 };
 
 // -----------------------------------------------------------------------------
-// 6. 메인 컴포넌트: JobSchedulerApp
+// 메인 페이지 컴포넌트 (/schedule/list)
 // -----------------------------------------------------------------------------
 
-export default function JobSchedulerApp() {
-  //   const router = useRouter();
+export default function JobSchedulerPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const scheduleIdParam = searchParams.get("scheduleId");
+  const selectedScheduleId =
+    scheduleIdParam !== null ? Number(scheduleIdParam) : null;
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(
-    null
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ 실제 API 호출
+  // 목록 조회
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
@@ -666,18 +661,22 @@ export default function JobSchedulerApp() {
 
   const selectedSchedule = useMemo(() => {
     if (!Array.isArray(schedules)) return undefined;
-    if (selectedScheduleId == null) return undefined;
+    if (selectedScheduleId == null || Number.isNaN(selectedScheduleId))
+      return undefined;
     return schedules.find((s) => s.scheduleId === selectedScheduleId);
   }, [selectedScheduleId, schedules]);
 
+  // 목록으로 돌아가기 → 쿼리 제거
   const handleBack = () => {
-    setSelectedScheduleId(null);
+    router.push("/view");
   };
 
+  // 카드 클릭 → 쿼리 붙여서 상세로
   const handleSelectSchedule = (id: number) => {
-    setSelectedScheduleId(id);
+    router.push(`/view?scheduleId=${id}`);
   };
 
+  // 수정 요청
   const handleUpdateSchedule = async ({
     draft,
     filesToUpload,
@@ -696,10 +695,9 @@ export default function JobSchedulerApp() {
         filesToDelete,
       };
 
-      // ✅ 서버에 수정 요청만 보냄 (별도 반환값 안 사용)
+      // ⚠️ updateSchedule 함수는 FormData + filesToUpload 지원하도록 API 쪽에서 구현되어 있어야 함
       await updateSchedule(draft.scheduleId, dto, filesToUpload);
 
-      // ✅ 수정 후 리스트를 다시 조회해서 상태를 최신으로 맞춤
       const refreshed = await getScheduleList({ page: 0, size: 100 });
       setSchedules(refreshed);
 
@@ -710,11 +708,12 @@ export default function JobSchedulerApp() {
     }
   };
 
+  // 삭제 요청
   const handleDeleteSchedule = async (id: number) => {
     try {
       await deleteSchedule(id);
       setSchedules((prev) => prev.filter((s) => s.scheduleId !== id));
-      setSelectedScheduleId(null);
+      router.push("/view");
       alert("일정이 삭제되었습니다.");
     } catch (err) {
       console.error("❌ 일정 삭제 실패:", err);
