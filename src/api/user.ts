@@ -6,6 +6,7 @@ import {
   EmailCheckRequest,
   ChangePasswordRequest,
   LoginRequest,
+  DeleteUserRequest,
 } from "../types/user";
 
 /**
@@ -68,6 +69,8 @@ export async function changePassword(
  * [DELETE] 사용자를 삭제(탈퇴)합니다. (/api/user/delete-user)
  * (스크린샷에 Body가 없는 요청으로 확인되어, 토큰 기반 삭제를 가정합니다.)
  */
-export async function deleteUser(): Promise<void> {
-  await instance.delete(`/api/user/delete-user`);
+export async function deleteUser(data: DeleteUserRequest): Promise<void> {
+  await instance.delete<CommonResponse<null>>("/api/user/delete-user", {
+    data,
+  });
 }

@@ -32,9 +32,11 @@ export interface EmailCheckRequest {
 
 /** 비밀번호 변경 요청 (PATCH /api/user/change-password 요청 Body) */
 export interface ChangePasswordRequest {
-  email: string;
+  oldPassword: string;
   newPassword: string;
 }
 
 /** 사용자 삭제 (DELETE /api/user/delete-user) */
-// Body가 없는 요청으로 확인되었으므로 별도 Request 타입은 없습니다.
+export interface DeleteUserRequest {
+  password: string;
+}
