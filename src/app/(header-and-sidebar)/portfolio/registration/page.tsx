@@ -335,7 +335,7 @@ export default function PortfolioRegistration() {
           email: data.user.email,
           phone: data.phone,
           address: data.address,
-          profileImage: data.profileImagePath,
+          profileImage: data.profileImageUrl,
         });
 
         setEducationList(
@@ -466,7 +466,6 @@ export default function PortfolioRegistration() {
     const dto: CreatePortfolioRequest = {
       phone: profile.phone,
       address: profile.address,
-      profileImage: profile.profileImage ?? "",
 
       // ✅ educations = 학력
       educations: educationList.filter(isEducationCareerActivity).map((i) => ({

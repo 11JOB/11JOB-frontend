@@ -1,25 +1,28 @@
+// src/api/project.ts
 import instance from "./instance";
-import {
-  CommonResponse,
-  Project,
-  UpdateProjectRequest,
-} from "../types/project";
+import { CommonResponse, Project } from "../types/project";
 
 /**
  * [POST] 새 프로젝트를 추가합니다. (/api/projects)
+ * Request: multipart/form-data
+ *  - dto: application/json (CreateProjectRequest)
+ *  - image: file (optional)
  */
-export async function createProject(formData: FormData) {
-  const response = await instance.post("/api/projects", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+export async function createProject(formData: FormData): Promise<Project> {
+  const response = await instance.post<CommonResponse<Project>>(
+    "/api/projects",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
   return response.data.data;
 }
 
 /**
  * [GET] 내 프로젝트 목록을 조회합니다. (/api/projects)
- * (목록 조회 시 페이지네이션 파라미터가 있을 수 있으나, 스크린샷에 명시된 쿼리는 없으므로 생략)
  */
 export async function getProjectList(): Promise<Project[]> {
   const response = await instance.get<CommonResponse<Project[]>>(
@@ -30,14 +33,20 @@ export async function getProjectList(): Promise<Project[]> {
 
 /**
  * [PUT] 특정 ID의 프로젝트를 업데이트합니다. (/api/projects/{projectId})
+ * Request: POST와 동일하게 multipart/form-data(dto + image)
  */
 export async function updateProject(
   projectId: number,
-  data: UpdateProjectRequest
+  formData: FormData
 ): Promise<Project> {
   const response = await instance.put<CommonResponse<Project>>(
     `/api/projects/${projectId}`,
-    data
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
   );
   return response.data.data;
 }

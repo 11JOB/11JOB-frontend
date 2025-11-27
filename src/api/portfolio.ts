@@ -19,7 +19,6 @@ export async function createPortfolio(
 ): Promise<Portfolio> {
   const formData = new FormData();
 
-  // ✅ dto를 multipart 안에서 JSON으로 전송
   formData.append(
     "dto",
     new Blob([JSON.stringify(dto)], { type: "application/json" })

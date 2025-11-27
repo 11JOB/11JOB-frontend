@@ -352,11 +352,11 @@ const ProjectFormContent: React.FC<{
         )}-${project.endDate.day.padStart(2, "0")}`;
 
         const dto = {
-          name: project.title,
+          title: project.title,
           description: project.description,
           startDate,
           endDate,
-          status: "진행 중", // 기본 상태값 설정
+          linkUrl: project.link ?? "",
         };
 
         const formData = new FormData();
