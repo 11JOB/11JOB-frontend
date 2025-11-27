@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Search, Briefcase, MapPin } from "lucide-react";
 import { getJobContent } from "@/api/job";
+import { useRouter } from "next/navigation"; // 추가
 
 interface Job {
   jobId: number;
@@ -19,6 +20,7 @@ interface Job {
 }
 
 const JobListItem: React.FC<{ item: Job }> = ({ item }) => {
+  const router = useRouter(); // 추가
   const formattedDeadline = item.expirationDate.replace(/-/g, ".");
   const isExpired = new Date(item.expirationDate) < new Date();
 
@@ -36,7 +38,7 @@ const JobListItem: React.FC<{ item: Job }> = ({ item }) => {
       })
     );
 
-    window.location.href = "/registration"; // Next router 써도 됨
+    router.push("/registration"); // 수정
   };
 
   return (

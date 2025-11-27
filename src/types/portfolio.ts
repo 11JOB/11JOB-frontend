@@ -50,7 +50,6 @@ export interface CertificateDto {
 
 /**
  * POST /api/portfolio, PUT /api/portfolio 의 dto 구조
- *  - Swagger의 dto object와 1:1 매칭
  *  - 프로필 이미지는 여기 포함 X (multipart의 profileImage 파트로 보냄)
  */
 export interface CreatePortfolioRequest {
