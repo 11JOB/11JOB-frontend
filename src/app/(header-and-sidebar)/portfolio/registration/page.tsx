@@ -179,21 +179,6 @@ const DynamicFormItem: React.FC<{
         />
       </div>
 
-      <div className="mb-3">
-        <label className="text-sm font-medium text-gray-700 block mb-1">
-          상세 내용 (선택 사항)
-        </label>
-        <textarea
-          value={item.detail || ""}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-            handleChange("detail", e.target.value)
-          }
-          placeholder="상세 내용이나 설명을 입력하세요."
-          rows={2}
-          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition resize-y"
-        />
-      </div>
-
       <div
         className={`grid ${
           isDateRangeType ? "grid-cols-2 gap-3" : "grid-cols-1"
@@ -305,6 +290,28 @@ const FormSection: React.FC<FormSectionProps> = ({
   </div>
 );
 
+const InputIcon: React.FC<{
+  icon: React.ReactNode;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}> = ({ icon, placeholder, value, onChange, type = "text" }) => (
+  <div className="relative">
+    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+      {icon}
+    </div>
+    <input
+      type={type}
+      value={value}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+        onChange(e.target.value)
+      }
+      placeholder={placeholder}
+      className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm"
+    />
+  </div>
+);
 // --- 4. 메인 컴포넌트 ---
 export default function PortfolioRegistration() {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false); // ✅ 모달 상태 추가
@@ -508,29 +515,6 @@ export default function PortfolioRegistration() {
       console.error("❌ 포트폴리오 저장 실패:", err);
     }
   };
-
-  const InputIcon: React.FC<{
-    icon: React.ReactNode;
-    placeholder: string;
-    value: string;
-    onChange: (value: string) => void;
-    type?: string;
-  }> = ({ icon, placeholder, value, onChange, type = "text" }) => (
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        {icon}
-      </div>
-      <input
-        type={type}
-        value={value}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          onChange(e.target.value)
-        }
-        placeholder={placeholder}
-        className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm"
-      />
-    </div>
-  );
 
   return (
     <div className="p-4 sm:p-8 bg-slate-50 min-h-screen font-sans">
