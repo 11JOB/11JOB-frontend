@@ -16,7 +16,7 @@ import {
   Zap,
   BookOpen,
   Award,
-  LinkIcon,
+  Link as LinkIcon,
 } from "lucide-react";
 
 import { createPortfolio, getPortfolio } from "@/api/portfolio";
@@ -24,7 +24,7 @@ import type {
   CreatePortfolioRequest,
   PortfolioResponse,
 } from "@/types/portfolio";
-import ProjectModal from "./projectModal"; // ✅ 모달 컴포넌트 임포트
+import ProjectModal from "./projectModal";
 
 // --- 1. 타입 정의 ---
 
@@ -77,6 +77,8 @@ interface FormSectionProps {
   };
   type: DetailType;
   icon: React.ReactNode;
+  // ✅ 아래쪽에 버튼 등을 꽂을 수 있는 영역
+  footerSlot?: React.ReactNode;
 }
 
 // --- 2. 유틸리티 함수 및 타입 가드 ---
@@ -154,6 +156,7 @@ const DynamicFormItem: React.FC<{
   return (
     <div className="p-5 border border-gray-200 rounded-xl mb-4 bg-white transition duration-200 shadow-md hover:shadow-xl hover:border-indigo-300 relative group">
       <button
+        type="button"
         onClick={() => onRemove(item.id)}
         className="absolute top-3 right-3 p-1 text-gray-400 bg-gray-50 rounded-full hover:text-red-600 hover:bg-red-100 transition duration-150 opacity-0 group-hover:opacity-100"
         aria-label="항목 삭제"
@@ -255,6 +258,7 @@ const FormSection: React.FC<FormSectionProps> = ({
   handlers,
   type,
   icon,
+  footerSlot,
 }) => (
   <div className="bg-white p-6 rounded-2xl shadow-xl mb-8 border border-gray-100">
     <div className="flex justify-between items-center border-b pb-4 mb-4">
@@ -287,6 +291,9 @@ const FormSection: React.FC<FormSectionProps> = ({
         등록된 항목이 없습니다. &apos;항목 추가&lsquo; 버튼을 눌러주세요.
       </div>
     )}
+
+    {/* ✅ 아래쪽 오른쪽 정렬 footer 영역 */}
+    {footerSlot && <div className="mt-4 flex justify-end">{footerSlot}</div>}
   </div>
 );
 
@@ -312,9 +319,13 @@ const InputIcon: React.FC<{
     />
   </div>
 );
+
 // --- 4. 메인 컴포넌트 ---
+
 export default function PortfolioRegistration() {
-  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false); // ✅ 모달 상태 추가
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  //   const [showProjectSaved, setShowProjectSaved] = useState(false); // ✅ 저장 알림 모달
+
   const [profile, setProfile] = useState<ProfileState>({
     name: "",
     email: "",
@@ -402,8 +413,8 @@ export default function PortfolioRegistration() {
     fetchPortfolio();
   }, []);
 
-  const handleOpenProjectModal = () => setIsProjectModalOpen(true); // ✅ 모달 열기
-  const handleCloseProjectModal = () => setIsProjectModalOpen(false); // ✅ 모달 닫기
+  const handleOpenProjectModal = () => setIsProjectModalOpen(true);
+  const handleCloseProjectModal = () => setIsProjectModalOpen(false);
 
   const getNextId = (list: DetailList): number =>
     list.length > 0 ? Math.max(...list.map((item) => item.id)) + 1 : 1;
@@ -463,7 +474,6 @@ export default function PortfolioRegistration() {
     const previewUrl = URL.createObjectURL(file);
     handleProfileChange("profileImage", previewUrl);
 
-    // URL 객체 해제 방지
     return () => URL.revokeObjectURL(previewUrl);
   };
 
@@ -473,35 +483,25 @@ export default function PortfolioRegistration() {
     const dto: CreatePortfolioRequest = {
       phone: profile.phone,
       address: profile.address,
-
-      // ✅ educations = 학력
       educations: educationList.filter(isEducationCareerActivity).map((i) => ({
         institutionName: i.institution,
         startDate: i.entryDate,
         endDate: i.exitDate,
       })),
-
-      // ✅ experiences = 경력
       experiences: careerList.filter(isEducationCareerActivity).map((i) => ({
         institutionName: i.institution,
         startDate: i.entryDate,
         endDate: i.exitDate,
       })),
-
-      // ✅ activities = 대외활동
       activities: activityList.filter(isEducationCareerActivity).map((i) => ({
         institutionName: i.institution,
         startDate: i.entryDate,
         endDate: i.exitDate,
       })),
-
-      // ✅ links = 링크
       links: introList.filter(isIntroduction).map((i) => ({
         title: i.title,
         url: i.link,
       })),
-
-      // ✅ certificates = 자격증
       certificates: certList.filter(isCertification).map((i) => ({
         title: i.title,
         acquireDate: i.acquisitionDate,
@@ -620,11 +620,24 @@ export default function PortfolioRegistration() {
 
           {/* 4. activities = 대외 활동 */}
           <FormSection
-            title="대외 활동 및 프로젝트"
+            title="대외 활동"
             list={activityList}
             handlers={activityHandlers}
             type="activity"
             icon={<Zap size={20} className="text-indigo-500" />}
+            footerSlot={
+              <button
+                type="button"
+                onClick={handleOpenProjectModal}
+                className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold
+                           bg-gray-100 text-gray-800 border border-gray-200 shadow-sm
+                           hover:bg-gray-200 hover:border-gray-300 active:bg-gray-300
+                           transition-colors duration-150"
+              >
+                <Plus size={16} className="mr-1" />
+                프로젝트 등록
+              </button>
+            }
           />
 
           {/* 5. links = 링크 */}
@@ -645,35 +658,26 @@ export default function PortfolioRegistration() {
             icon={<Award size={20} className="text-indigo-500" />}
           />
 
-          {/* ✅ 버튼 2개를 위아래로 배치 (스타일 크게 안 바꿈) */}
+          {/* 최종 저장 버튼 */}
           <div className="flex flex-col items-center pt-8 gap-4">
-            {/* 포트폴리오 저장 */}
             <button
               type="submit"
               className="px-10 py-4 bg-indigo-600 text-white text-lg font-bold rounded-xl shadow-xl hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.02] active:scale-100 active:bg-indigo-800 w-full"
             >
               포트폴리오 최종 저장
             </button>
-
-            {/* 프로젝트 등록 모달 열기 */}
-            <button
-              type="button"
-              onClick={handleOpenProjectModal} // ✅ 모달 열기
-              className="px-10 py-4 bg-white text-indigo-600 text-lg font-bold rounded-xl shadow-xl border border-indigo-200 hover:bg-indigo-50 transition duration-150 transform hover:scale-[1.02] w-full"
-            >
-              프로젝트 등록하기
-            </button>
           </div>
         </form>
       </div>
 
-      {/* ✅ 모달 컴포넌트 추가 */}
+      {/* ✅ 프로젝트 등록 모달 */}
       <ProjectModal
         isOpen={isProjectModalOpen}
         onClose={handleCloseProjectModal}
-        onProjectsSaved={(count) =>
-          console.log(`${count}개의 프로젝트가 저장되었습니다.`)
-        }
+        onProjectsSaved={(count) => {
+          console.log(`${count}개의 프로젝트가 저장되었습니다.`);
+          setIsProjectModalOpen(true);
+        }}
       />
     </div>
   );

@@ -125,6 +125,44 @@ const DateInputGroup: React.FC<{
 );
 
 // ===============================================
+// ✅ 공용 텍스트 인풋 (포커스 튕김 방지용, 카드 밖에서 정의)
+// ===============================================
+
+interface ProjectTextInputProps {
+  label: string;
+  placeholder: string;
+  value: string;
+  icon: React.ReactNode;
+  type?: string;
+  onChange: (value: string) => void;
+}
+
+const ProjectTextInput: React.FC<ProjectTextInputProps> = ({
+  label,
+  placeholder,
+  value,
+  icon,
+  type = "text",
+  onChange,
+}) => (
+  <div className="mb-4">
+    <label className="text-sm font-medium text-gray-700 block mb-1 flex items-center">
+      {icon}
+      <span className="ml-1">{label}</span>
+    </label>
+    <input
+      type={type}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+        onChange(e.target.value)
+      }
+      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm"
+    />
+  </div>
+);
+
+// ===============================================
 // ✅ 프로젝트 카드
 // ===============================================
 
@@ -149,31 +187,6 @@ const ProjectItemCard: React.FC<{
     item.description.trim().length > 0 &&
     isDateValid(item.startDate) &&
     isDateValid(item.endDate);
-
-  const InputField: React.FC<{
-    label: string;
-    placeholder: string;
-    value: string;
-    field: keyof ProjectItem;
-    icon: React.ReactNode;
-    type?: string;
-  }> = ({ label, placeholder, value, field, icon, type = "text" }) => (
-    <div className="mb-4">
-      <label className="text-sm font-medium text-gray-700 block mb-1 flex items-center">
-        {icon}
-        <span className="ml-1">{label}</span>
-      </label>
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          onUpdate(item.id, { [field]: e.target.value } as any)
-        }
-        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm"
-      />
-    </div>
-  );
 
   const imagePreviewUrl = useMemo(
     () =>
@@ -220,12 +233,14 @@ const ProjectItemCard: React.FC<{
         </div>
 
         <div className="flex-1 w-full">
-          <InputField
+          <ProjectTextInput
             label="프로젝트 제목"
             placeholder="제목을 입력하세요 (예: 커뮤니티 웹 서비스 개발)"
             value={item.title}
-            field="title"
             icon={<AlignLeft size={16} className="text-indigo-600" />}
+            onChange={(value) =>
+              onUpdate(item.id, { title: value } as Partial<ProjectItem>)
+            }
           />
         </div>
       </div>
@@ -367,7 +382,6 @@ const ProjectFormContent: React.FC<{
       const numericId = Number(id);
 
       try {
-        // isNew → 서버에 없는 데이터는 DELETE 하지 않음
         const target = projects.find((p) => p.id === id);
         if (!target?.isNew) {
           await deleteProject(numericId);
@@ -376,7 +390,6 @@ const ProjectFormContent: React.FC<{
         console.error("삭제 중 오류:", e);
       }
 
-      // UI 즉시 업데이트
       setProjects((prev) => {
         const updated = prev.filter((item) => item.id !== id);
         onProjectsSaved(updated.filter((p) => !p.isNew).length);
@@ -386,77 +399,6 @@ const ProjectFormContent: React.FC<{
     [projects, onProjectsSaved]
   );
 
-  //   const handleSaveProject = useCallback(
-  //     async (project: ProjectItem) => {
-  //       const isDateValid = (d: DateFields) =>
-  //         d.year.length === 4 && d.month.length > 0 && d.day.length > 0;
-
-  //       if (
-  //         !project.title.trim() ||
-  //         !project.description.trim() ||
-  //         !isDateValid(project.startDate) ||
-  //         !isDateValid(project.endDate)
-  //       ) {
-  //         console.error("필수 입력 사항 누락");
-  //         return;
-  //       }
-
-  //       setIsAnyProjectSaving(true);
-
-  //       try {
-  //         const startDate = `${
-  //           project.startDate.year
-  //         }-${project.startDate.month.padStart(
-  //           2,
-  //           "0"
-  //         )}-${project.startDate.day.padStart(2, "0")}`;
-  //         const endDate = `${
-  //           project.endDate.year
-  //         }-${project.endDate.month.padStart(
-  //           2,
-  //           "0"
-  //         )}-${project.endDate.day.padStart(2, "0")}`;
-
-  //         const dto = {
-  //           title: project.title,
-  //           description: project.description,
-  //           startDate,
-  //           endDate,
-  //           linkUrl: project.link ?? "",
-  //         };
-
-  //         const formData = new FormData();
-  //         formData.append(
-  //           "dto",
-  //           new Blob([JSON.stringify(dto)], { type: "application/json" })
-  //         );
-  //         if (project.imageFile) {
-  //           formData.append("image", project.imageFile);
-  //         }
-
-  //         if (project.isNew) {
-  //           // 새 프로젝트 → POST
-  //           await createProject(formData);
-  //         } else {
-  //           // 기존 프로젝트 수정 → PUT
-  //           await updateProject(Number(project.id), formData);
-  //         }
-
-  //         setProjects((prev) => {
-  //           const updatedProjects = prev.map((item) =>
-  //             item.id === project.id ? { ...project, isNew: false } : item
-  //           );
-  //           onProjectsSaved(updatedProjects.filter((p) => !p.isNew).length);
-  //           return updatedProjects;
-  //         });
-  //       } catch (e) {
-  //         console.error(e);
-  //       } finally {
-  //         setIsAnyProjectSaving(false);
-  //       }
-  //     },
-  //     [onProjectsSaved]
-  //   );
   const handleSaveProject = useCallback(async (project: ProjectItem) => {
     setIsAnyProjectSaving(true);
 
@@ -499,7 +441,6 @@ const ProjectFormContent: React.FC<{
         await updateProject(Number(project.id), formData);
       }
 
-      // 저장 후 상태 업데이트
       setProjects((prev) =>
         prev.map((item) =>
           item.id === project.id ? { ...project, isNew: false } : item
