@@ -1,7 +1,7 @@
 // src/app/(header-and-sidebar)/mypage/page.tsx
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   User,
   LogOut,
@@ -9,23 +9,15 @@ import {
   KeyRound,
   AlertTriangle,
 } from "lucide-react";
-import Image from "next/image";
-import { changePassword, deleteUser, logout } from "@/api/user";
+import { changePassword, deleteUser, logout, getUserName } from "@/api/user";
 
 // -----------------------------------------------------------------------------
-// 1. 임시 사용자 정보 (추후 /me API 생기면 여기만 바꿔서 사용)
-// -----------------------------------------------------------------------------
-const MOCK_USER = {
-  name: "김수현",
-  email: "kim.suhyeon@jobtracker.com",
-  profileUrl: "https://placehold.co/100x100/3b82f6/ffffff?text=KS",
-};
-
-// -----------------------------------------------------------------------------
-// 2. 메인 마이페이지 컴포넌트
+// 마이페이지 컴포넌트
 // -----------------------------------------------------------------------------
 export default function MyPage() {
-  const user = MOCK_USER;
+  // 사용자 정보
+  const [userName, setUserName] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>("");
 
   // 비밀번호 변경 상태
   const [oldPassword, setOldPassword] = useState("");
@@ -40,8 +32,29 @@ export default function MyPage() {
   // 로그아웃 상태
   const [logoutLoading, setLogoutLoading] = useState(false);
 
-  // "계정 설정" 클릭 시 이동할 섹션 ref
-  const passwordSectionRef = useRef<HTMLDivElement | null>(null);
+  // ---------------------------------------------------------------------------
+  // 사용자 이름 + 이메일 로드
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      try {
+        // 닉네임은 백엔드에서
+        const name = await getUserName();
+        setUserName(name);
+      } catch (e) {
+        console.error("❌ 사용자 이름 조회 실패:", e);
+        setUserName("알 수 없는 사용자");
+      }
+
+      // 이메일은 로그인 시 저장해 둔 localStorage 에서
+      if (typeof window !== "undefined") {
+        const email = localStorage.getItem("userEmail");
+        if (email) setUserEmail(email);
+      }
+    };
+
+    loadUserInfo();
+  }, []);
 
   // ---------------------------------------------------------------------------
   // 핸들러: 로그아웃
@@ -53,13 +66,14 @@ export default function MyPage() {
     try {
       setLogoutLoading(true);
       await logout();
-      // 토큰 제거
+
       if (typeof window !== "undefined") {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        localStorage.removeItem("userEmail");
       }
+
       alert("로그아웃되었습니다.");
-      // 실제 서비스라면 로그인 페이지나 메인 페이지로 이동
       window.location.href = "/";
     } catch (err) {
       console.error("❌ 로그아웃 실패:", err);
@@ -125,13 +139,14 @@ export default function MyPage() {
 
     try {
       setDeleteLoading(true);
-      await deleteUser({ password: deletePassword });
+      await deleteUser({ password: deletePassword }); // DeleteUserRequest = { password: string }
+
       alert("회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.");
 
-      // 토큰 제거 + 메인 페이지 이동
       if (typeof window !== "undefined") {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        localStorage.removeItem("userEmail");
       }
       window.location.href = "/";
     } catch (err) {
@@ -145,6 +160,9 @@ export default function MyPage() {
   // ---------------------------------------------------------------------------
   // 렌더링
   // ---------------------------------------------------------------------------
+  // 이니셜용 한 글자 (이름 없으면 ?)
+  const initial = userName ? userName.charAt(0).toUpperCase() : "?";
+
   return (
     <div className="flex-1 min-h-screen bg-gray-50 font-sans">
       <div className="max-w-2xl mx-auto py-10 px-4 sm:px-6 lg:px-0 space-y-8">
@@ -159,33 +177,27 @@ export default function MyPage() {
           </p>
         </header>
 
-        {/* 프로필 카드 */}
-        <section className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-          <Image
-            src={user.profileUrl}
-            alt="Profile"
-            width={96}
-            height={96}
-            className="w-24 h-24 rounded-full object-cover ring-4 ring-blue-200"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src =
-                "https://placehold.co/100x100/3b82f6/ffffff?text=User";
-            }}
-          />
-          <div className="space-y-1 text-center sm:text-left">
-            <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
-            <p className="text-gray-600 text-lg">{user.email}</p>
+        {/* 프로필 카드 (프로필 이미지 없음, 이니셜 원형 배지) */}
+        <section className="flex items-center space-x-4 bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+          <div className="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center text-white text-xl font-bold">
+            {initial}
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {userName || "로그인 사용자"}
+            </h2>
+            <p className="text-gray-600 text-lg">
+              {userEmail || "이메일 정보가 없습니다."}
+            </p>
           </div>
         </section>
 
-        {/* 계정 관리 요약 카드 (계정 설정 / 로그아웃) */}
+        {/* 계정 관리 - 로그아웃 */}
         <section className="space-y-2">
           <h3 className="text-xl font-bold text-gray-800">계정 관리</h3>
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100">
-            {/* 로그아웃 */}
             <button
-              className="w-full text-left flex items-center justify-between p-4 text-red-600 hover:bg-red-50 transition duration-150 rounded-b-xl"
+              className="w-full text-left flex items-center justify-between p-4 text-red-600 hover:bg-red-50 transition duration-150 rounded-xl"
               onClick={handleLogout}
               disabled={logoutLoading}
             >
@@ -199,10 +211,7 @@ export default function MyPage() {
         </section>
 
         {/* 비밀번호 변경 섹션 */}
-        <section
-          ref={passwordSectionRef}
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-5"
-        >
+        <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-5">
           <div className="flex items-center space-x-2">
             <KeyRound className="w-5 h-5 text-blue-500" />
             <h3 className="text-lg font-bold text-gray-800">비밀번호 변경</h3>

@@ -14,7 +14,13 @@ import {
   AlignLeft,
   LinkIcon,
 } from "lucide-react";
-import { createProject } from "@/api/project"; // ✅ API 임포트
+import {
+  createProject,
+  deleteProject,
+  getProjectList,
+  updateProject,
+} from "@/api/project";
+import { ProjectResponse } from "@/types/project";
 
 // ===============================================
 // ✅ 프로젝트 모달 관련 타입
@@ -34,12 +40,19 @@ export interface ProjectItem {
   description: string;
   link: string;
   imageFile: File | null;
+  imageUrl?: string | null; // ✅ 서버 이미지 URL
   isNew: boolean;
 }
 
 // ===============================================
 // ✅ 유틸
 // ===============================================
+
+// "2024-01-01" → { year: "2024", month: "01", day: "01" }
+const toDateFields = (dateString: string): DateFields => {
+  const [year, month, day] = dateString.split("-");
+  return { year, month, day };
+};
 
 const createNewProject = (): ProjectItem => ({
   id: crypto.randomUUID(),
@@ -49,6 +62,7 @@ const createNewProject = (): ProjectItem => ({
   description: "",
   link: "",
   imageFile: null,
+  imageUrl: null,
   isNew: true,
 });
 
@@ -162,15 +176,20 @@ const ProjectItemCard: React.FC<{
   );
 
   const imagePreviewUrl = useMemo(
-    () => (item.imageFile ? URL.createObjectURL(item.imageFile) : null),
-    [item.imageFile]
+    () =>
+      item.imageFile
+        ? URL.createObjectURL(item.imageFile)
+        : item.imageUrl || null,
+    [item.imageFile, item.imageUrl]
   );
 
   useEffect(() => {
     return () => {
-      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+      if (item.imageFile && imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
     };
-  }, [imagePreviewUrl]);
+  }, [imagePreviewUrl, item.imageFile]);
 
   return (
     <div className="relative bg-white p-6 md:p-8 rounded-2xl shadow-xl hover:shadow-2xl transition duration-300 mb-6 border border-indigo-100">
@@ -233,7 +252,9 @@ const ProjectItemCard: React.FC<{
         </label>
         <textarea
           value={item.description}
-          onChange={(e) => onUpdate(item.id, { description: e.target.value })}
+          onChange={(e) =>
+            onUpdate(item.id, { description: e.target.value } as any)
+          }
           rows={5}
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 resize-y transition shadow-sm"
         />
@@ -248,7 +269,7 @@ const ProjectItemCard: React.FC<{
         <input
           type="url"
           value={item.link}
-          onChange={(e) => onUpdate(item.id, { link: e.target.value })}
+          onChange={(e) => onUpdate(item.id, { link: e.target.value } as any)}
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm"
         />
       </div>
@@ -292,9 +313,41 @@ const ProjectItemCard: React.FC<{
 const ProjectFormContent: React.FC<{
   onClose: () => void;
   onProjectsSaved: (savedProjectsCount: number) => void;
-}> = ({ onClose, onProjectsSaved }) => {
-  const [projects, setProjects] = useState<ProjectItem[]>([createNewProject()]);
+  isOpen: boolean;
+}> = ({ onClose, onProjectsSaved, isOpen }) => {
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [isAnyProjectSaving, setIsAnyProjectSaving] = useState(false);
+
+  // 🔥 모달 열릴 때 기존 프로젝트 불러오기
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchProjects = async () => {
+      try {
+        const projectList: ProjectResponse[] = await getProjectList();
+
+        const formattedProjects: ProjectItem[] = projectList.map((project) => ({
+          id: project.id.toString(),
+          title: project.title ?? "",
+          startDate: toDateFields(project.startDate),
+          endDate: toDateFields(project.endDate),
+          description: project.description ?? "",
+          link: project.linkUrl ?? "",
+          imageFile: null,
+          imageUrl: project.imageUrl ?? null,
+          isNew: false,
+        }));
+
+        setProjects(formattedProjects);
+        onProjectsSaved(formattedProjects.length);
+      } catch (error) {
+        console.error("프로젝트 목록을 가져오는 중 오류 발생:", error);
+        setProjects([]);
+      }
+    };
+
+    fetchProjects();
+  }, [isOpen, onProjectsSaved]);
 
   const handleAddProject = useCallback(() => {
     setProjects((prev) => [...prev, createNewProject()]);
@@ -310,81 +363,154 @@ const ProjectFormContent: React.FC<{
   );
 
   const handleDeleteProject = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      const numericId = Number(id);
+
+      try {
+        // isNew → 서버에 없는 데이터는 DELETE 하지 않음
+        const target = projects.find((p) => p.id === id);
+        if (!target?.isNew) {
+          await deleteProject(numericId);
+        }
+      } catch (e) {
+        console.error("삭제 중 오류:", e);
+      }
+
+      // UI 즉시 업데이트
       setProjects((prev) => {
         const updated = prev.filter((item) => item.id !== id);
         onProjectsSaved(updated.filter((p) => !p.isNew).length);
         return updated;
       });
     },
-    [onProjectsSaved]
+    [projects, onProjectsSaved]
   );
 
-  const handleSaveProject = useCallback(
-    async (project: ProjectItem) => {
-      const isDateValid = (d: DateFields) =>
-        d.year.length === 4 && d.month.length > 0 && d.day.length > 0;
+  //   const handleSaveProject = useCallback(
+  //     async (project: ProjectItem) => {
+  //       const isDateValid = (d: DateFields) =>
+  //         d.year.length === 4 && d.month.length > 0 && d.day.length > 0;
 
-      if (
-        !project.title.trim() ||
-        !project.description.trim() ||
-        !isDateValid(project.startDate) ||
-        !isDateValid(project.endDate)
-      ) {
-        console.error("필수 입력 사항 누락");
-        return;
+  //       if (
+  //         !project.title.trim() ||
+  //         !project.description.trim() ||
+  //         !isDateValid(project.startDate) ||
+  //         !isDateValid(project.endDate)
+  //       ) {
+  //         console.error("필수 입력 사항 누락");
+  //         return;
+  //       }
+
+  //       setIsAnyProjectSaving(true);
+
+  //       try {
+  //         const startDate = `${
+  //           project.startDate.year
+  //         }-${project.startDate.month.padStart(
+  //           2,
+  //           "0"
+  //         )}-${project.startDate.day.padStart(2, "0")}`;
+  //         const endDate = `${
+  //           project.endDate.year
+  //         }-${project.endDate.month.padStart(
+  //           2,
+  //           "0"
+  //         )}-${project.endDate.day.padStart(2, "0")}`;
+
+  //         const dto = {
+  //           title: project.title,
+  //           description: project.description,
+  //           startDate,
+  //           endDate,
+  //           linkUrl: project.link ?? "",
+  //         };
+
+  //         const formData = new FormData();
+  //         formData.append(
+  //           "dto",
+  //           new Blob([JSON.stringify(dto)], { type: "application/json" })
+  //         );
+  //         if (project.imageFile) {
+  //           formData.append("image", project.imageFile);
+  //         }
+
+  //         if (project.isNew) {
+  //           // 새 프로젝트 → POST
+  //           await createProject(formData);
+  //         } else {
+  //           // 기존 프로젝트 수정 → PUT
+  //           await updateProject(Number(project.id), formData);
+  //         }
+
+  //         setProjects((prev) => {
+  //           const updatedProjects = prev.map((item) =>
+  //             item.id === project.id ? { ...project, isNew: false } : item
+  //           );
+  //           onProjectsSaved(updatedProjects.filter((p) => !p.isNew).length);
+  //           return updatedProjects;
+  //         });
+  //       } catch (e) {
+  //         console.error(e);
+  //       } finally {
+  //         setIsAnyProjectSaving(false);
+  //       }
+  //     },
+  //     [onProjectsSaved]
+  //   );
+  const handleSaveProject = useCallback(async (project: ProjectItem) => {
+    setIsAnyProjectSaving(true);
+
+    try {
+      const startDate = `${
+        project.startDate.year
+      }-${project.startDate.month.padStart(
+        2,
+        "0"
+      )}-${project.startDate.day.padStart(2, "0")}`;
+
+      const endDate = `${project.endDate.year}-${project.endDate.month.padStart(
+        2,
+        "0"
+      )}-${project.endDate.day.padStart(2, "0")}`;
+
+      const dto = {
+        title: project.title,
+        description: project.description,
+        startDate,
+        endDate,
+        linkUrl: project.link,
+      };
+
+      const formData = new FormData();
+      formData.append(
+        "dto",
+        new Blob([JSON.stringify(dto)], { type: "application/json" })
+      );
+
+      if (project.imageFile) {
+        formData.append("image", project.imageFile);
       }
 
-      setIsAnyProjectSaving(true);
-
-      try {
-        const startDate = `${
-          project.startDate.year
-        }-${project.startDate.month.padStart(
-          2,
-          "0"
-        )}-${project.startDate.day.padStart(2, "0")}`;
-        const endDate = `${
-          project.endDate.year
-        }-${project.endDate.month.padStart(
-          2,
-          "0"
-        )}-${project.endDate.day.padStart(2, "0")}`;
-
-        const dto = {
-          title: project.title,
-          description: project.description,
-          startDate,
-          endDate,
-          linkUrl: project.link ?? "",
-        };
-
-        const formData = new FormData();
-        formData.append(
-          "dto",
-          new Blob([JSON.stringify(dto)], { type: "application/json" })
-        );
-        if (project.imageFile) {
-          formData.append("image", project.imageFile);
-        }
-
-        await createProject(formData); // ✅ API 호출
-
-        setProjects((prev) => {
-          const updatedProjects = prev.map((item) =>
-            item.id === project.id ? { ...project, isNew: false } : item
-          );
-          onProjectsSaved(updatedProjects.filter((p) => !p.isNew).length);
-          return updatedProjects;
-        });
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsAnyProjectSaving(false);
+      if (project.isNew) {
+        // 🔥 새 프로젝트 → POST
+        await createProject(formData);
+      } else {
+        // 🔥 기존 프로젝트 → PUT
+        await updateProject(Number(project.id), formData);
       }
-    },
-    [onProjectsSaved]
-  );
+
+      // 저장 후 상태 업데이트
+      setProjects((prev) =>
+        prev.map((item) =>
+          item.id === project.id ? { ...project, isNew: false } : item
+        )
+      );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsAnyProjectSaving(false);
+    }
+  }, []);
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-8">
@@ -473,7 +599,11 @@ export default function ProjectModal({
 }) {
   return (
     <ModalShell isOpen={isOpen} onClose={onClose}>
-      <ProjectFormContent onClose={onClose} onProjectsSaved={onProjectsSaved} />
+      <ProjectFormContent
+        onClose={onClose}
+        onProjectsSaved={onProjectsSaved}
+        isOpen={isOpen}
+      />
     </ModalShell>
   );
 }

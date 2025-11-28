@@ -74,3 +74,11 @@ export async function deleteUser(data: DeleteUserRequest): Promise<void> {
     data,
   });
 }
+
+/**
+ * [GET] 내 사용자 정보를 조회합니다. (/api/user/me)
+ */
+export async function getUserName(): Promise<string> {
+  const response = await instance.get<string>("/api/user/name");
+  return response.data;
+}

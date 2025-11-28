@@ -7,14 +7,14 @@ export interface CommonResponse<T = any> {
   data: T;
 }
 
-export interface Project {
+export interface ProjectResponse {
   id: number;
-  title: string;
+  title: string | null;
   description: string;
   startDate: string;
   endDate: string;
-  linkUrl: string;
-  imageUrl: string;
+  linkUrl: string | null;
+  imageUrl: string | null;
 }
 
 export interface CreateProjectRequest {
