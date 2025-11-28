@@ -40,3 +40,9 @@ export interface ChangePasswordRequest {
 export interface DeleteUserRequest {
   password: string;
 }
+
+/** 사용자 삭제 응답 */
+export interface DeleteUserResponse {
+  success: boolean;
+  message: string;
+}

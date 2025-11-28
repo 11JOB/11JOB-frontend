@@ -127,6 +127,7 @@ const DateInput: React.FC<{
     <label htmlFor={id} className="text-sm font-medium text-gray-700 sr-only">
       연월
     </label>
+
     <input
       id={id}
       type="month"
@@ -570,12 +571,12 @@ export default function PortfolioRegistration() {
 
               {/* 입력 필드 영역 */}
               <div className="col-span-2 space-y-4">
-                <InputIcon
+                {/* <InputIcon
                   icon={<User size={18} className="text-gray-400" />}
                   placeholder="이름"
                   value={profile.name}
                   onChange={(value) => handleProfileChange("name", value)}
-                />
+                /> */}
                 <InputIcon
                   icon={<Mail size={18} className="text-gray-400" />}
                   placeholder="이메일"

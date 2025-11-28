@@ -7,6 +7,7 @@ import {
   ChangePasswordRequest,
   LoginRequest,
   DeleteUserRequest,
+  DeleteUserResponse,
 } from "../types/user";
 
 /**
@@ -69,10 +70,28 @@ export async function changePassword(
  * [DELETE] 사용자를 삭제(탈퇴)합니다. (/api/user/delete-user)
  * (스크린샷에 Body가 없는 요청으로 확인되어, 토큰 기반 삭제를 가정합니다.)
  */
-export async function deleteUser(data: DeleteUserRequest): Promise<void> {
-  await instance.delete<CommonResponse<null>>("/api/user/delete-user", {
-    data,
-  });
+export async function deleteUser(
+  data: DeleteUserRequest
+): Promise<DeleteUserResponse> {
+  console.log("📤 [deleteUser] 요청 전송:", data);
+
+  try {
+    const response = await instance.delete<DeleteUserResponse>(
+      "/api/user/delete-user",
+      { data }
+    );
+
+    console.log("📥 [deleteUser] 응답 수신:", response);
+
+    return response.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    console.error("❌ [deleteUser] API 호출 오류:");
+    console.error("   ▶ status:", error.response?.status);
+    console.error("   ▶ response.data:", error.response?.data);
+    console.error("   ▶ full error:", error);
+    throw error;
+  }
 }
 
 /**

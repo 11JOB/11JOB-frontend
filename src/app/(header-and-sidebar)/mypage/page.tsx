@@ -126,7 +126,11 @@ export default function MyPage() {
   // ---------------------------------------------------------------------------
   // 핸들러: 회원 탈퇴
   // ---------------------------------------------------------------------------
+  // ------------------------------ 회원 탈퇴 ------------------------------
   const handleDeleteUser = async () => {
+    console.log("⚡ [handleDeleteUser] 실행됨");
+    console.log("입력된 비밀번호:", deletePassword);
+
     if (!deletePassword) {
       alert("회원 탈퇴를 위해 비밀번호를 입력해주세요.");
       return;
@@ -139,19 +143,24 @@ export default function MyPage() {
 
     try {
       setDeleteLoading(true);
-      await deleteUser({ password: deletePassword }); // DeleteUserRequest = { password: string }
+      console.log("📤 [handleDeleteUser] deleteUser 요청 보냄");
 
-      alert("회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.");
+      const res = await deleteUser({ password: deletePassword });
 
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("userEmail");
+      console.log("📥 [handleDeleteUser] deleteUser 응답:", res);
+
+      if (!res.success) {
+        alert(res.message || "회원 탈퇴 실패");
+        return;
       }
+
+      alert(res.message || "회원 탈퇴 완료");
+
+      localStorage.clear();
       window.location.href = "/";
     } catch (err) {
-      console.error("❌ 회원 탈퇴 실패:", err);
-      alert("회원 탈퇴에 실패했습니다. 비밀번호를 다시 확인해 주세요.");
+      console.error("❌ [handleDeleteUser] 오류:", err);
+      alert("회원 탈퇴 실패. 비밀번호를 다시 확인해주세요.");
     } finally {
       setDeleteLoading(false);
     }
