@@ -12,11 +12,14 @@ import {
 import { changePassword, deleteUser, logout, getUserName } from "@/api/user";
 import CommonModal from "@/components/common-modal"; // 공통 모달 컴포넌트 추가
 import ConfirmCancelModal from "@/components/confirm-cancel-modal"; // ConfirmCancelModal 추가
+import { useRouter } from "next/navigation"; // useRouter 훅 추가
 
 // -----------------------------------------------------------------------------
 // 마이페이지 컴포넌트
 // -----------------------------------------------------------------------------
 export default function MyPage() {
+  const router = useRouter(); // useRouter 훅 추가
+
   // Redirect to /auth if no token
   useEffect(() => {
     if (typeof window !== "undefined" && !localStorage.getItem("accessToken")) {
@@ -173,7 +176,7 @@ export default function MyPage() {
       showModal(res.message || "회원 탈퇴 완료");
 
       localStorage.clear();
-      window.location.href = "/";
+      router.push("/"); // 회원 탈퇴 후 / 페이지로 이동
     } catch (err) {
       console.error("❌ [handleDeleteUser] 오류:", err);
       showModal("회원 탈퇴 실패. 비밀번호를 다시 확인해주세요.");
