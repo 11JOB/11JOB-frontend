@@ -191,6 +191,14 @@ export default function App() {
 
   const daysOfWeek = ["일", "월", "화", "수", "목", "금", "토"];
 
+  // Check for token
+  const hasToken = useMemo(() => {
+    if (typeof window !== "undefined") {
+      return !!localStorage.getItem("accessToken");
+    }
+    return false;
+  }, []);
+
   // ✅ 일정 로딩
   useEffect(() => {
     const fetchSchedules = async () => {
@@ -228,7 +236,7 @@ export default function App() {
         setEventsByDate(map);
       } catch (err) {
         console.error("❌ 달력 일정 조회 실패:", err);
-        setError("달력 데이터를 불러오지 못했습니다.");
+        // setError("달력 데이터를 불러오지 못했습니다.");
       } finally {
         setLoading(false);
       }
@@ -256,6 +264,11 @@ export default function App() {
               {format(today, "yyyy년 MM월 dd일 EEEE", { locale: ko })}
             </span>
           </h2>
+          {!hasToken && (
+            <p className="mt-3 text-sm text-gray-500">
+              로그인하고 일정을 등록해보세요.
+            </p>
+          )}
           {loading && (
             <p className="mt-3 text-sm text-gray-500">
               달력 데이터를 불러오는 중입니다...

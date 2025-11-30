@@ -169,6 +169,13 @@ export default function ScheduleRegistration() {
   const initialDetailId = 1;
   const router = useRouter();
 
+  // Redirect to /auth if no token
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("accessToken")) {
+      window.location.href = "/auth";
+    }
+  }, []);
+
   const [formData, setFormData] = useState<ScheduleFormData>({
     date: today,
     mainTitle: "",

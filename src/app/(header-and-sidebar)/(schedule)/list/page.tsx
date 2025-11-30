@@ -124,6 +124,13 @@ export default function List() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentSearchTerm, setCurrentSearchTerm] = useState("");
 
+  // Redirect to /auth if no token
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("accessToken")) {
+      window.location.href = "/auth";
+    }
+  }, []);
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -649,6 +649,13 @@ export default function JobSchedulerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Redirect to /auth if no token
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("accessToken")) {
+      window.location.href = "/auth";
+    }
+  }, []);
+
   const scheduleIdParam = searchParams.get("scheduleId");
   const selectedScheduleId =
     scheduleIdParam !== null ? Number(scheduleIdParam) : null;

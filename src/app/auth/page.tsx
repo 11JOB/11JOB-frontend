@@ -4,7 +4,8 @@ import React, { useMemo, useState } from "react";
 import { Eye, EyeOff, ChevronLeft } from "lucide-react";
 import clsx from "clsx";
 import { join, sendEmail, checkEmail, login } from "@/api/user"; // API 호출 함수 추가
-import { useRouter } from "next/navigation"; // Next.js 라우터 추가
+import CommonModal from "@/components/common-modal"; // 공통 모달 컴포넌트 추가
+import CompleteModal from "@/components/complete-modal"; // CompleteModal 추가
 
 // -----------------------------------------------------------
 // 1. Component: Button (컴포넌트 폴더 내의 Button.jsx 역할)
@@ -167,6 +168,14 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [agree, setAgree] = useState(false);
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [isCodeVerified, setIsCodeVerified] = useState(false); // 인증번호 확인 상태 추가
+  const [modalMessage, setModalMessage] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [, setIsCompleteModalOpen] = useState(false); // CompleteModal 상태 추가
+
+  const showModal = (message: string) => {
+    setModalMessage(message);
+    setIsModalOpen(true);
+  };
 
   const pwMatch = useMemo(
     () => pw.length >= 8 && pw === pwConfirm,
@@ -199,10 +208,10 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     try {
       await sendEmail({ email });
       setIsCodeSent(true);
-      alert(`[${email}]로 인증번호가 발송되었습니다.`);
+      showModal(`[${email}]로 인증번호가 발송되었습니다.`);
     } catch (error) {
       console.error("Failed to send email:", error);
-      alert("이메일 발송에 실패했습니다. 다시 시도해주세요.");
+      showModal("이메일 발송에 실패했습니다. 다시 시도해주세요.");
     }
   };
 
@@ -212,10 +221,10 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     try {
       await checkEmail({ email, authNum: authNum });
       setIsCodeVerified(true);
-      alert("인증번호가 확인되었습니다.");
+      showModal("인증번호가 확인되었습니다.");
     } catch (error) {
       console.error("Verification failed:", error);
-      alert("인증번호가 올바르지 않습니다. 다시 확인해주세요.");
+      showModal("인증번호가 올바르지 않습니다. 다시 확인해주세요.");
     }
   };
 
@@ -225,147 +234,159 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     if (!canSubmit) return;
     try {
       await join({ email, password: pw, name });
-      alert("회원가입이 성공적으로 완료되었습니다.");
-      onBack(); // 로그인 화면으로 이동
+      setIsCompleteModalOpen(true); // 회원가입 완료 모달 열기
     } catch (error) {
       console.error("Sign up failed:", error);
-      alert("회원가입에 실패했습니다. 다시 시도해주세요.");
+      showModal("회원가입에 실패했습니다. 다시 시도해주세요.");
     }
   };
 
   return (
-    <div className="rounded-2xl bg-white shadow-xl ring-1 ring-gray-100 p-8 w-full transition-opacity duration-300">
-      <ViewHeader title="회원가입" onBack={onBack} showBack={true} />
+    <>
+      <CommonModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        message={modalMessage}
+      />
+      <CompleteModal
+        message="회원가입이 성공적으로 완료되었습니다!"
+        route="/auth"
+        pagemessage="로그인 페이지로"
+        onClose={() => setIsCompleteModalOpen(false)}
+      />
+      <div className="rounded-2xl bg-white shadow-xl ring-1 ring-gray-100 p-8 w-full transition-opacity duration-300">
+        <ViewHeader title="회원가입" onBack={onBack} showBack={true} />
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* 아이디(이메일) 및 인증번호 발송 */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            아이디(이메일)
-          </label>
-          <div className="flex gap-2">
-            <Input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="이메일 주소를 입력해주세요"
-              type="email"
-              readOnly={isCodeSent}
-            />
-            <button
-              type="button"
-              onClick={handleSendCode}
-              disabled={!canSendCode}
-              className={clsx(
-                "whitespace-nowrap px-4 rounded-xl text-sm font-semibold transition-colors duration-150",
-                canSendCode
-                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                  : "bg-gray-300 text-gray-600 cursor-not-allowed"
-              )}
-            >
-              {isCodeSent ? "재전송" : "인증번호 발송"}
-            </button>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* 아이디(이메일) 및 인증번호 발송 */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              아이디(이메일)
+            </label>
+            <div className="flex gap-2">
+              <Input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="이메일 주소를 입력해주세요"
+                type="email"
+                readOnly={isCodeSent}
+              />
+              <button
+                type="button"
+                onClick={handleSendCode}
+                disabled={!canSendCode}
+                className={clsx(
+                  "whitespace-nowrap px-4 rounded-xl text-sm font-semibold transition-colors duration-150",
+                  canSendCode
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                    : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                )}
+              >
+                {isCodeSent ? "재전송" : "인증번호 발송"}
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* 이메일 인증번호 입력 및 확인 */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            이메일 인증번호 입력
-          </label>
-          <div className="flex gap-2">
+          {/* 이메일 인증번호 입력 및 확인 */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              이메일 인증번호 입력
+            </label>
+            <div className="flex gap-2">
+              <Input
+                value={authNum}
+                onChange={(e) => setAuthNum(e.target.value)}
+                placeholder="이메일 인증번호 6자리를 입력해주세요"
+                type="text"
+                className="appearance-none"
+              />
+              <button
+                type="button"
+                onClick={handleVerifyCode}
+                disabled={!canVerifyCode}
+                className={clsx(
+                  "whitespace-nowrap px-4 rounded-xl text-sm font-semibold transition-colors duration-150",
+                  canVerifyCode
+                    ? "bg-green-600 text-white hover:bg-green-700"
+                    : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                )}
+              >
+                인증번호 확인
+              </button>
+            </div>
+          </div>
+
+          {/* 비밀번호 */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              비밀번호 (8자 이상)
+            </label>
+            <PasswordInput
+              value={pw}
+              onChange={(e) => setPw(e.target.value)}
+              placeholder="비밀번호를 입력해주세요"
+            />
+            {pw.length > 0 && pw.length < 8 && (
+              <p className="mt-1 text-xs text-red-500">
+                비밀번호는 최소 8자 이상이어야 합니다.
+              </p>
+            )}
+          </div>
+
+          {/* 비밀번호 확인 */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              비밀번호 확인
+            </label>
+            <PasswordInput
+              value={pwConfirm}
+              onChange={(e) => setPwConfirm(e.target.value)}
+              placeholder="비밀번호를 다시 입력해주세요"
+            />
+            {!pwMatch && pwConfirm.length > 0 && (
+              <p className="mt-1 text-xs text-red-500">
+                비밀번호가 일치하지 않습니다.
+              </p>
+            )}
+          </div>
+
+          {/* 이름 입력 */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              이름
+            </label>
             <Input
-              value={authNum}
-              onChange={(e) => setAuthNum(e.target.value)}
-              placeholder="이메일 인증번호 6자리를 입력해주세요"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="이름을 입력해주세요"
               type="text"
-              className="appearance-none"
             />
-            <button
-              type="button"
-              onClick={handleVerifyCode}
-              disabled={!canVerifyCode}
-              className={clsx(
-                "whitespace-nowrap px-4 rounded-xl text-sm font-semibold transition-colors duration-150",
-                canVerifyCode
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-gray-300 text-gray-600 cursor-not-allowed"
-              )}
-            >
-              인증번호 확인
-            </button>
           </div>
-        </div>
 
-        {/* 비밀번호 */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            비밀번호 (8자 이상)
+          {/* 개인정보 동의 */}
+          <label className="flex items-center gap-2 text-sm text-gray-700 select-none">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+              checked={agree}
+              onChange={(e) => setAgree(e.target.checked)}
+            />
+            개인정보 이용 및 수집 동의
           </label>
-          <PasswordInput
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            placeholder="비밀번호를 입력해주세요"
-          />
-          {pw.length > 0 && pw.length < 8 && (
-            <p className="mt-1 text-xs text-red-500">
-              비밀번호는 최소 8자 이상이어야 합니다.
-            </p>
-          )}
-        </div>
 
-        {/* 비밀번호 확인 */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            비밀번호 확인
-          </label>
-          <PasswordInput
-            value={pwConfirm}
-            onChange={(e) => setPwConfirm(e.target.value)}
-            placeholder="비밀번호를 다시 입력해주세요"
-          />
-          {!pwMatch && pwConfirm.length > 0 && (
-            <p className="mt-1 text-xs text-red-500">
-              비밀번호가 일치하지 않습니다.
-            </p>
-          )}
-        </div>
-
-        {/* 이름 입력 */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            이름
-          </label>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="이름을 입력해주세요"
-            type="text"
-          />
-        </div>
-
-        {/* 개인정보 동의 */}
-        <label className="flex items-center gap-2 text-sm text-gray-700 select-none">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
-            checked={agree}
-            onChange={(e) => setAgree(e.target.checked)}
-          />
-          개인정보 이용 및 수집 동의
-        </label>
-
-        {/* 버튼 */}
-        <div className="pt-2">
-          <Button
-            type="submit"
-            disabled={!canSubmit}
-            className={clsx({ "bg-black": canSubmit })}
-          >
-            회원가입
-          </Button>
-        </div>
-      </form>
-    </div>
+          {/* 버튼 */}
+          <div className="pt-2">
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              className={clsx({ "bg-black": canSubmit })}
+            >
+              회원가입
+            </Button>
+          </div>
+        </form>
+      </div>
+    </>
   );
 };
 
@@ -378,7 +399,14 @@ const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
 }) => {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
-  const router = useRouter(); // Next.js 라우터 사용
+  const [modalMessage, setModalMessage] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false); // CompleteModal 상태 추가
+
+  const showModal = (message: string) => {
+    setModalMessage(message);
+    setIsModalOpen(true);
+  };
 
   const canSubmit = useMemo(
     () => email.trim() !== "" && pw.trim() !== "",
@@ -402,67 +430,82 @@ const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("userEmail", email); // 이메일 저장
 
-      alert("로그인 성공");
-      router.push("/"); // 메인 페이지로 이동
+      setIsCompleteModalOpen(true); // 로그인 성공 모달 열기
     } catch (error) {
       console.error("Login failed:", error);
-      alert("로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.");
+      showModal("로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.");
     }
   };
 
   return (
-    <div className="rounded-2xl bg-white shadow-xl ring-1 ring-gray-100 p-8 w-full transition-opacity duration-300">
-      <ViewHeader
-        title="로그인"
-        onBack={() => {}} // 로그인 뷰에서는 뒤로가기 버튼 없음
-        showBack={false}
+    <>
+      <CommonModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        message={modalMessage}
       />
+      {isCompleteModalOpen && ( // 로그인 성공 시에만 CompleteModal 표시
+        <CompleteModal
+          message="로그인에 성공하였습니다!"
+          route="/"
+          pagemessage="메인 페이지로"
+          onClose={() => setIsCompleteModalOpen(false)}
+          //   isOpen={isCompleteModalOpen}
+        />
+      )}
+      <div className="rounded-2xl bg-white shadow-xl ring-1 ring-gray-100 p-8 w-full transition-opacity duration-300">
+        <ViewHeader
+          title="로그인"
+          onBack={() => {}} // 로그인 뷰에서는 뒤로가기 버튼 없음
+          showBack={false}
+        />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 아이디(이메일) */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            아이디(이메일)
-          </label>
-          <Input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="아이디를 입력해주세요"
-            type="email"
-          />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* 아이디(이메일) */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              아이디(이메일)
+            </label>
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="아이디를 입력해주세요"
+              type="email"
+            />
+          </div>
+
+          {/* 비밀번호 */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              비밀번호
+            </label>
+            <PasswordInput
+              value={pw}
+              onChange={(e) => setPw(e.target.value)}
+              placeholder="비밀번호를 입력해주세요"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={!canSubmit}
+            className={clsx({ "bg-black": canSubmit })}
+          >
+            로그인
+          </Button>
+        </form>
+
+        {/* 회원가입 / 비밀번호 찾기 링크 */}
+        <div className="mt-6 text-center text-sm space-x-2">
+          <span
+            className="text-gray-600 hover:text-black cursor-pointer transition duration-150 font-medium"
+            onClick={() => handleNavigation("signup")} // 뷰 전환: 회원가입 (라우팅 시뮬레이션)
+          >
+            회원가입
+          </span>
         </div>
-
-        {/* 비밀번호 */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            비밀번호
-          </label>
-          <PasswordInput
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            placeholder="비밀번호를 입력해주세요"
-          />
-        </div>
-
-        <Button
-          type="submit"
-          disabled={!canSubmit}
-          className={clsx({ "bg-black": canSubmit })}
-        >
-          로그인
-        </Button>
-      </form>
-
-      {/* 회원가입 / 비밀번호 찾기 링크 */}
-      <div className="mt-6 text-center text-sm space-x-2">
-        <span
-          className="text-gray-600 hover:text-black cursor-pointer transition duration-150 font-medium"
-          onClick={() => handleNavigation("signup")} // 뷰 전환: 회원가입 (라우팅 시뮬레이션)
-        >
-          회원가입
-        </span>
       </div>
-    </div>
+    </>
   );
 };
 

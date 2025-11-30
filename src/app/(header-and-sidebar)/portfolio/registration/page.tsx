@@ -326,7 +326,14 @@ const InputIcon: React.FC<{
 
 export default function PortfolioRegistration() {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false); // ✅ 추가
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+
+  // Redirect to /auth if no token
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("accessToken")) {
+      window.location.href = "/auth";
+    }
+  }, []);
 
   const [profile, setProfile] = useState<ProfileState>({
     name: "",
