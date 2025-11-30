@@ -253,7 +253,28 @@ export default function ScheduleRegistration() {
     const files = event.target.files;
     if (!files) return;
 
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB
+
     const fileArray = Array.from(files).filter((f) => f instanceof File);
+
+    // 파일 크기 검증
+    for (const file of fileArray) {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`파일 "${file.name}"은(는) 10MB를 초과할 수 없습니다.`);
+        return;
+      }
+    }
+
+    // 총 파일 크기 검증
+    const totalSize = [...formData.files, ...fileArray].reduce(
+      (acc, file) => acc + file.size,
+      0
+    );
+    if (totalSize > MAX_TOTAL_SIZE) {
+      alert("전체 파일 크기는 50MB를 초과할 수 없습니다.");
+      return;
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -264,10 +285,15 @@ export default function ScheduleRegistration() {
   };
 
   const handleRemoveFile = (fileIndex: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      files: prev.files.filter((_, index) => index !== fileIndex),
-    }));
+    console.log("Removing file at index:", fileIndex); // 디버깅용 로그 추가
+    setFormData((prev) => {
+      const updatedFiles = prev.files.filter((_, index) => index !== fileIndex);
+      console.log("Updated files:", updatedFiles); // 상태 업데이트 확인
+      return {
+        ...prev,
+        files: updatedFiles,
+      };
+    });
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -446,7 +472,8 @@ export default function ScheduleRegistration() {
                 type="file"
                 multiple
                 onChange={handleFileChange}
-                className="absolute inset-0 opacity-0 cursor-pointer"
+                // className="absolute inset-0 opacity-0 cursor-pointer"
+                className="hidden"
               />
 
               <p className="mb-4">
@@ -477,10 +504,13 @@ export default function ScheduleRegistration() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleRemoveFile(index)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleRemoveFile(index);
+                        }}
                         className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" /> {/* 아이콘 */}
                       </button>
                     </div>
                   ))}
