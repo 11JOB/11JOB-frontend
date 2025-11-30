@@ -25,6 +25,7 @@ import type {
   PortfolioResponse,
 } from "@/types/portfolio";
 import ProjectModal from "./projectModal";
+import CompleteModal from "@/components/complete-modal";
 
 // --- 1. 타입 정의 ---
 
@@ -325,7 +326,7 @@ const InputIcon: React.FC<{
 
 export default function PortfolioRegistration() {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-  //   const [showProjectSaved, setShowProjectSaved] = useState(false); // ✅ 저장 알림 모달
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false); // ✅ 추가
 
   const [profile, setProfile] = useState<ProfileState>({
     name: "",
@@ -512,6 +513,7 @@ export default function PortfolioRegistration() {
     try {
       const saved = await createPortfolio(dto, profileImageFile);
       console.log("✅ 포트폴리오 저장 성공:", saved);
+      setIsCompleteModalOpen(true);
     } catch (err) {
       console.error("❌ 포트폴리오 저장 실패:", err);
     }
@@ -680,6 +682,14 @@ export default function PortfolioRegistration() {
           setIsProjectModalOpen(true);
         }}
       />
+
+      {isCompleteModalOpen && (
+        <CompleteModal
+          message="포트폴리오가 저장되었습니다."
+          route="/portfolio/view"
+          pagemessage="조회 페이지로"
+        />
+      )}
     </div>
   );
 }

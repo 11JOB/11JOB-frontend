@@ -21,6 +21,7 @@ import {
   updateProject,
 } from "@/api/project";
 import { ProjectResponse } from "@/types/project";
+import CompleteModal from "@/components/complete-modal";
 
 // ===============================================
 // ✅ 프로젝트 모달 관련 타입
@@ -332,6 +333,7 @@ const ProjectFormContent: React.FC<{
 }> = ({ onClose, onProjectsSaved, isOpen }) => {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [isAnyProjectSaving, setIsAnyProjectSaving] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string | null>(null); // ✅ 모달 메시지 상태
 
   // 🔥 모달 열릴 때 기존 프로젝트 불러오기
   useEffect(() => {
@@ -386,8 +388,10 @@ const ProjectFormContent: React.FC<{
         if (!target?.isNew) {
           await deleteProject(numericId);
         }
+        setModalMessage("프로젝트가 삭제되었습니다."); // ✅ 삭제 성공 메시지
       } catch (e) {
         console.error("삭제 중 오류:", e);
+        setModalMessage("프로젝트 삭제 중 오류가 발생했습니다."); // ✅ 삭제 실패 메시지
       }
 
       setProjects((prev) => {
@@ -434,11 +438,11 @@ const ProjectFormContent: React.FC<{
       }
 
       if (project.isNew) {
-        // 🔥 새 프로젝트 → POST
-        await createProject(formData);
+        await createProject(formData); // ✅ 새 프로젝트 저장
+        setModalMessage("프로젝트가 저장되었습니다."); // ✅ 저장 성공 메시지
       } else {
-        // 🔥 기존 프로젝트 → PUT
-        await updateProject(Number(project.id), formData);
+        await updateProject(Number(project.id), formData); // ✅ 기존 프로젝트 수정
+        setModalMessage("프로젝트가 수정되었습니다."); // ✅ 수정 성공 메시지
       }
 
       setProjects((prev) =>
@@ -448,6 +452,7 @@ const ProjectFormContent: React.FC<{
       );
     } catch (e) {
       console.error(e);
+      setModalMessage("프로젝트 저장 중 오류가 발생했습니다."); // ✅ 저장 실패 메시지
     } finally {
       setIsAnyProjectSaving(false);
     }
@@ -495,6 +500,14 @@ const ProjectFormContent: React.FC<{
           <span>새 프로젝트 추가</span>
         </button>
       </div>
+
+      {/* ✅ 완료 모달 */}
+      {modalMessage && (
+        <CompleteModal
+          message={modalMessage}
+          onClose={() => setModalMessage(null)} // ✅ 모달 닫기
+        />
+      )}
     </div>
   );
 };
