@@ -8,6 +8,7 @@ import { Calendar, X, PlusCircle, FileText, Trash2 } from "lucide-react";
 
 import { createSchedule } from "@/api/schedule";
 import { CreateScheduleDto, SelectedJob } from "@/types/schedule";
+import CompleteModal from "@/components/complete-modal"; // ✅ 추가
 
 // --------------------
 // 라우터 대체(기존 유지)
@@ -179,6 +180,7 @@ export default function ScheduleRegistration() {
   const [nextDetailId, setNextDetailId] = useState(initialDetailId + 1);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [hasSelectedJob, setHasSelectedJob] = useState(true);
+  const [modalMessage, setModalMessage] = useState<string | null>(null); // ✅ 모달 메시지 상태
 
   // ✅ selectedJob 자동 채움
   useEffect(() => {
@@ -300,10 +302,10 @@ export default function ScheduleRegistration() {
 
     try {
       await createSchedule(dtoObject, formData.files);
-      //   router.push("/view");
+      setModalMessage("일정이 성공적으로 등록되었습니다!"); // ✅ 성공 메시지 설정
     } catch (error) {
       console.error("일정 등록 중 오류 발생:", error);
-      alert("일정 등록에 실패했습니다.");
+      setModalMessage("일정 등록 중 오류가 발생했습니다."); // ✅ 실패 메시지 설정
     }
   };
 
@@ -497,6 +499,14 @@ export default function ScheduleRegistration() {
         onClose={() => setIsCalendarOpen(false)}
         onDateSelect={handleDateSelect}
       />
+
+      {/* ✅ 완료 모달 */}
+      {modalMessage && (
+        <CompleteModal
+          message={modalMessage}
+          route="/list" // ✅ 모달 닫기
+        />
+      )}
     </div>
   );
 }

@@ -32,6 +32,8 @@ import type {
   ScheduleFile,
   UpdateScheduleRequest,
 } from "@/types/schedule";
+import CompleteModal from "@/components/complete-modal"; // ✅ 추가
+import ConfirmModal from "@/components/confirm-modal"; // ✅ 추가
 
 // 오늘 기준 날짜 유틸
 const today = new Date();
@@ -229,6 +231,8 @@ const ScheduleDetailView: React.FC<{
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string | null>(null); // ✅ 완료 모달 메시지 상태
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // ✅ 확인 모달 상태
 
   useEffect(() => {
     setDraft(schedule);
@@ -277,20 +281,17 @@ const ScheduleDetailView: React.FC<{
     setNewFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleClickDelete = async () => {
-    if (
-      !confirm(
-        `정말로 이 일정을 삭제하시겠습니까?\n\n[${schedule.companyName}] ${schedule.title}`
-      )
-    ) {
-      return;
-    }
-
+  const handleDeleteConfirm = async () => {
     try {
       setDeleting(true);
       await onDelete(schedule.scheduleId);
+      setModalMessage("일정이 성공적으로 삭제되었습니다."); // ✅ 삭제 성공 메시지
+    } catch (err) {
+      console.error("❌ 일정 삭제 실패:", err);
+      setModalMessage("일정 삭제 중 오류가 발생했습니다."); // ✅ 삭제 실패 메시지
     } finally {
       setDeleting(false);
+      setIsConfirmModalOpen(false); // ✅ 확인 모달 닫기
     }
   };
 
@@ -302,9 +303,13 @@ const ScheduleDetailView: React.FC<{
         filesToUpload: newFiles,
         filesToDelete,
       });
+      setModalMessage("일정이 수정되었습니다."); // ✅ 수정 성공 메시지
       setIsEditing(false);
       setFilesToDelete([]);
       setNewFiles([]);
+    } catch (err) {
+      console.error("❌ 일정 수정 실패:", err);
+      setModalMessage("일정 수정 중 오류가 발생했습니다."); // ✅ 수정 실패 메시지
     } finally {
       setSaving(false);
     }
@@ -356,7 +361,7 @@ const ScheduleDetailView: React.FC<{
                 수정하기
               </button>
               <button
-                onClick={handleClickDelete}
+                onClick={() => setIsConfirmModalOpen(true)} // ✅ 확인 모달 열기
                 className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border border-red-500 text-red-600 hover:bg-red-50 disabled:opacity-60"
                 disabled={deleting}
               >
@@ -389,7 +394,7 @@ const ScheduleDetailView: React.FC<{
 
         {isEditing ? (
           <input
-            className="text-3xl sm:text-4xl font-extrabold text-gray-900 border-b border-gray-200 mt-2 px-1 py-1 w-full"
+            className="text-3xl sm:text-4xl font-extrabold text-gray-900 border rounded-[10px] border-gray-400 mt-2 px-1 py-2 w-full"
             value={draft.title}
             onChange={(e) =>
               setDraft((prev) => ({ ...prev, title: e.target.value }))
@@ -615,6 +620,23 @@ const ScheduleDetailView: React.FC<{
           스케줄 ID: {schedule.scheduleId} | 회사 ID: {schedule.companyId}
         </p>
       </footer>
+
+      {/* ✅ 확인 모달 */}
+      {isConfirmModalOpen && (
+        <ConfirmModal
+          message={`정말로 이 일정을 삭제하시겠습니까?\n\n[${schedule.companyName}] ${schedule.title}`}
+          onConfirm={handleDeleteConfirm} // ✅ 삭제 확인
+          onCancel={() => setIsConfirmModalOpen(false)} // ✅ 확인 모달 닫기
+        />
+      )}
+
+      {/* ✅ 완료 모달 */}
+      {modalMessage && (
+        <CompleteModal
+          message={modalMessage}
+          onClose={() => setModalMessage(null)} // ✅ 완료 모달 닫기
+        />
+      )}
     </div>
   );
 };
@@ -700,11 +722,8 @@ export default function JobSchedulerPage() {
 
       const refreshed = await getScheduleList({ page: 0, size: 100 });
       setSchedules(refreshed);
-
-      alert("일정이 수정되었습니다.");
     } catch (err) {
       console.error("❌ 일정 수정 실패:", err);
-      alert("일정을 수정하지 못했습니다. 다시 시도해 주세요.");
     }
   };
 
@@ -714,10 +733,8 @@ export default function JobSchedulerPage() {
       await deleteSchedule(id);
       setSchedules((prev) => prev.filter((s) => s.scheduleId !== id));
       router.push("/view");
-      alert("일정이 삭제되었습니다.");
     } catch (err) {
       console.error("❌ 일정 삭제 실패:", err);
-      alert("일정을 삭제하지 못했습니다. 다시 시도해 주세요.");
     }
   };
 
