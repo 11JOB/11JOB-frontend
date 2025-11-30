@@ -5,7 +5,7 @@ import { Eye, EyeOff, ChevronLeft } from "lucide-react";
 import clsx from "clsx";
 import { join, sendEmail, checkEmail, login } from "@/api/user";
 import CommonModal from "@/components/common-modal";
-import CompleteModal from "@/components/complete-modal";
+// import CompleteModal from "@/components/complete-modal";
 import CompleteLoginModal from "@/components/complete-login-modal";
 
 // -----------------------------------------------------------
@@ -160,7 +160,10 @@ const ViewHeader: React.FC<{
 // 5. Page: SignUpPage
 // -----------------------------------------------------------
 
-const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+const SignUpPage: React.FC<{ onBack: () => void; onComplete: () => void }> = ({
+  onBack,
+  onComplete,
+}) => {
   const [email, setEmail] = useState("");
   const [authNum, setAuthNum] = useState("");
   const [pw, setPw] = useState("");
@@ -235,7 +238,7 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     if (!canSubmit) return;
     try {
       await join({ email, password: pw, name });
-      setIsCompleteModalOpen(true);
+      setIsCompleteModalOpen(true); // 회원가입 완료 모달 열기
     } catch (error) {
       console.error("Sign up failed:", error);
       showModal("회원가입에 실패했습니다. 다시 시도해주세요.");
@@ -250,11 +253,13 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         message={modalMessage}
       />
       {isCompleteModalOpen && (
-        <CompleteModal
+        <CommonModal
+          isOpen={isCompleteModalOpen}
+          onClose={() => {
+            setIsCompleteModalOpen(false);
+            onComplete(); // 확인 버튼 클릭 시 로그인 화면으로 이동
+          }}
           message="회원가입이 성공적으로 완료되었습니다!"
-          route="/auth"
-          pagemessage="로그인 페이지로"
-          onClose={() => setIsCompleteModalOpen(false)}
         />
       )}
       <div className="rounded-2xl bg-white shadow-xl ring-1 ring-gray-100 p-8 w-full transition-opacity duration-300">
@@ -523,7 +528,12 @@ export default function App() {
       case "signin":
         return <SignInPage handleNavigation={handleNavigation} />;
       case "signup":
-        return <SignUpPage onBack={() => handleNavigation("signin")} />;
+        return (
+          <SignUpPage
+            onBack={() => handleNavigation("signin")}
+            onComplete={() => handleNavigation("signin")} // 회원가입 완료 시 로그인 화면으로 이동
+          />
+        );
       default:
         return null;
     }
