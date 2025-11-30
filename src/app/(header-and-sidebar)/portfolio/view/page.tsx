@@ -1,3 +1,4 @@
+// app/portfolio/view/page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
 "use client";
@@ -20,9 +21,11 @@ import {
 import { getPortfolio } from "@/api/portfolio";
 import type { PortfolioResponse } from "@/types/portfolio";
 
-// 🔥 프로젝트 목록 조회용 API/타입
 import { getProjectList } from "@/api/project";
 import type { ProjectResponse } from "@/types/project";
+
+// ⭐ 포트폴리오 없을 때 보여줄 컴포넌트
+import EmptyPortfolioState from "../registration/empty-portfolio-state"; // 경로는 구조에 맞게 수정
 
 // ===============================
 // 타입 가드
@@ -84,7 +87,7 @@ const DetailItemCard = ({ item }: { item: any }) => {
     );
     cardStyle += " bg-teal-50 border border-teal-200";
   } else {
-    // 활동/프로젝트 등 기타 항목에 대한 기본 카드
+    // 활동/기타 기본 카드
     content = (
       <>
         <h3 className="text-lg font-semibold text-gray-900">
@@ -246,14 +249,29 @@ export default function PortfolioView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
+  // ⭐ 로딩/상태 관리
+  const [status, setStatus] = useState<
+    "loading" | "success" | "empty" | "error"
+  >("loading");
+
   // 최초 로드: API 조회
   useEffect(() => {
     async function load() {
       try {
         const res = await getPortfolio();
         setPortfolio(res);
-      } catch (e) {
+        setStatus("success");
+      } catch (e: any) {
         console.error("포트폴리오 조회 실패", e);
+
+        // ⭐ 404면 포트폴리오 없음 상태로 처리
+        const statusCode = e?.response?.status ?? e?.status;
+        if (statusCode === 404) {
+          setStatus("empty");
+          setPortfolio(null);
+        } else {
+          setStatus("error");
+        }
       }
     }
     load();
@@ -280,6 +298,39 @@ export default function PortfolioView() {
     };
   }, [searchTerm, portfolio]);
 
+  // ================= 상태별 분기 =================
+
+  // 1) 로딩 중
+  if (status === "loading") {
+    return (
+      <div className="flex justify-center items-center min-h-screen text-gray-500">
+        로딩 중...
+      </div>
+    );
+  }
+
+  // 2) 포트폴리오가 아예 없을 때 (백엔드 404)
+  if (status === "empty") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <EmptyPortfolioState />
+      </div>
+    );
+  }
+
+  // 3) 기타 에러
+  if (status === "error" && !portfolio) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 gap-4">
+        <p className="text-sm text-gray-500">
+          포트폴리오를 불러오는 중 오류가 발생했습니다.
+        </p>
+        <EmptyPortfolioState />
+      </div>
+    );
+  }
+
+  // 4) 혹시 모를 안전장치
   if (!portfolio || !filtered) {
     return (
       <div className="flex justify-center items-center min-h-screen text-gray-500">
@@ -288,6 +339,7 @@ export default function PortfolioView() {
     );
   }
 
+  // ================= 실제 뷰 렌더 =================
   return (
     <>
       <div className="p-4 md:p-8 bg-gray-100 min-h-screen font-sans">
@@ -339,7 +391,7 @@ export default function PortfolioView() {
                 <div className="mt-6 p-4 bg-white rounded-2xl shadow-md border">
                   <div className="relative">
                     <Search
-                      className="text-gray-400 absolute left-3"
+                      className="text-gray-400 absolute left-3 top-2.5"
                       size={20}
                     />
                     <input
@@ -351,7 +403,7 @@ export default function PortfolioView() {
                     />
                     {searchTerm && (
                       <button
-                        className="absolute right-3 top-2 text-gray-500"
+                        className="absolute right-3 top-2.5 text-gray-500"
                         onClick={() => setSearchTerm("")}
                       >
                         <X size={16} />
