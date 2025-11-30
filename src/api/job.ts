@@ -15,7 +15,9 @@ export async function getFilteredJobList(
   if (req.careerConditionName)
     queryParams["careerConditionName"] = req.careerConditionName;
   if (req.searchKeyword) queryParams["searchKeyword"] = req.searchKeyword;
-  if (req.searchType) queryParams["searchType"] = req.searchType;
+
+  // 🔥 searchType은 항상 "ALL"로 설정
+  queryParams["searchType"] = "ALL";
 
   // 🔥 pageable → 플랫 쿼리로 변환
   queryParams["page"] = pageable.page;
@@ -40,14 +42,12 @@ export async function getJobContent(options?: {
   size?: number;
   workLocation?: string;
   careerConditionName?: string;
-  searchType?: string;
 }): Promise<JobPageResponse> {
   return getFilteredJobList({
     request: {
       searchKeyword: options?.keyword || undefined,
       workLocation: options?.workLocation || undefined,
       careerConditionName: options?.careerConditionName || undefined,
-      searchType: options?.searchType || undefined,
     },
     pageable: {
       page: options?.page ?? 0,

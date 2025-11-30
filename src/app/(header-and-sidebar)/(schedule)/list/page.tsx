@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Search, Briefcase, MapPin } from "lucide-react";
 import { getJobContent } from "@/api/job";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface Job {
   jobId: number;
@@ -132,6 +132,9 @@ const locationOptions = [
 ];
 
 export default function List() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [textKeyword, setTextKeyword] = useState("");
 
@@ -146,74 +149,143 @@ export default function List() {
   const [totalPages, setTotalPages] = useState(0);
   const PAGE_GROUP_SIZE = 5;
 
+  const [initializedFromUrl, setInitializedFromUrl] = useState(false);
+
+  // 🔒 인증 체크
   useEffect(() => {
     if (typeof window !== "undefined" && !localStorage.getItem("accessToken")) {
       window.location.href = "/auth";
     }
   }, []);
 
+  // 🌐 URL 쿼리 → 상태 초기화 (최초 1번)
+  useEffect(() => {
+    if (initializedFromUrl) return;
+
+    const keywordFromUrl = searchParams.get("keyword") || "";
+    const careerFromUrl = searchParams.get("career");
+    const locationFromUrl = searchParams.get("location");
+    const pageFromUrl = searchParams.get("page");
+    const parsedPage = pageFromUrl ? parseInt(pageFromUrl, 10) : 0;
+
+    if (keywordFromUrl) {
+      setSearchTerm(keywordFromUrl);
+      setTextKeyword(keywordFromUrl);
+    }
+
+    if (careerFromUrl) {
+      setSelectedCareer(careerFromUrl);
+    }
+
+    if (locationFromUrl) {
+      setSelectedLocation(locationFromUrl);
+    }
+
+    if (!Number.isNaN(parsedPage) && parsedPage >= 0) {
+      setCurrentPage(parsedPage);
+    }
+
+    setInitializedFromUrl(true);
+  }, [searchParams, initializedFromUrl]);
+
+  // 🔍 검색 버튼 클릭 (검색어 → searchKeyword)
   const handleSearch = () => {
     const trimmed = searchTerm.trim();
 
     setTextKeyword(trimmed);
-    setSelectedCareer(null);
-    setSelectedLocation(null);
     setCurrentPage(0);
+
+    const params = new URLSearchParams();
+    if (trimmed) params.set("keyword", trimmed);
+    if (selectedCareer) params.set("career", selectedCareer);
+    if (selectedLocation) params.set("location", selectedLocation);
+    params.set("page", "0");
+
+    router.push(`/list?${params.toString()}`);
   };
 
+  // 🎯 경력 선택 (careerConditionName)
   const handleCareerClick = (career: string) => {
-    setSelectedCareer((prev) => {
-      const next = prev === career ? null : career;
+    const willSelect = selectedCareer === career ? null : career;
 
-      setTextKeyword("");
-      setSearchTerm("");
-      setSelectedLocation(null);
-
-      return next;
-    });
+    setSelectedCareer(willSelect);
     setCurrentPage(0);
+
+    const params = new URLSearchParams();
+    if (textKeyword) params.set("keyword", textKeyword);
+    if (willSelect) params.set("career", willSelect);
+    if (selectedLocation) params.set("location", selectedLocation);
+    params.set("page", "0");
+
+    router.push(`/list?${params.toString()}`);
   };
 
+  // 📍 지역 선택 (workLocation)
   const handleLocationChange = (value: string) => {
     const nextLocation = value || null;
 
     setSelectedLocation(nextLocation);
-    setTextKeyword("");
-    setSearchTerm("");
-    setSelectedCareer(null);
-
     setCurrentPage(0);
+
+    const params = new URLSearchParams();
+    if (textKeyword) params.set("keyword", textKeyword);
+    if (selectedCareer) params.set("career", selectedCareer);
+    if (nextLocation) params.set("location", nextLocation);
+    params.set("page", "0");
+
+    router.push(`/list?${params.toString()}`);
   };
 
+  // 🔄 검색 조건 초기화
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setTextKeyword("");
+    setSelectedCareer(null);
+    setSelectedLocation(null);
+    setCurrentPage(0);
+
+    router.push("/list");
+  };
+
+  // 📄 페이지 이동 시 URL 쿼리와 동기화
   const goToPage = (page: number) => {
     if (page < 0 || page >= totalPages) return;
     setCurrentPage(page);
+
+    const params = new URLSearchParams();
+    if (textKeyword) params.set("keyword", textKeyword);
+    if (selectedCareer) params.set("career", selectedCareer);
+    if (selectedLocation) params.set("location", selectedLocation);
+    params.set("page", String(page));
+
+    router.push(`/list?${params.toString()}`);
   };
 
   const currentGroup = Math.floor(currentPage / PAGE_GROUP_SIZE);
   const startPage = currentGroup * PAGE_GROUP_SIZE;
   const endPage = Math.min(startPage + PAGE_GROUP_SIZE, totalPages);
 
+  // 📡 공고 리스트 불러오기
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        let keyword = "";
+        // getJobContent 옵션과 API 쿼리 매핑
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const params: any = {
+          page: currentPage,
+        };
 
         if (textKeyword) {
-          keyword = textKeyword;
-        } else if (selectedCareer) {
-          keyword = selectedCareer;
-        } else if (selectedLocation) {
-          keyword = selectedLocation;
+          params.keyword = textKeyword; // → searchKeyword
         }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const params: any = { page: currentPage };
-        if (keyword) {
-          params.keyword = keyword;
+        if (selectedCareer) {
+          params.careerConditionName = selectedCareer;
+        }
+        if (selectedLocation) {
+          params.workLocation = selectedLocation;
         }
 
         const response = await getJobContent(params);
@@ -228,8 +300,17 @@ export default function List() {
       }
     };
 
-    fetchJobs();
-  }, [textKeyword, selectedCareer, selectedLocation, currentPage]);
+    // URL에서 상태 초기화 끝난 후에만 호출
+    if (initializedFromUrl) {
+      fetchJobs();
+    }
+  }, [
+    textKeyword,
+    selectedCareer,
+    selectedLocation,
+    currentPage,
+    initializedFromUrl,
+  ]);
 
   return (
     <div className="flex-1 p-4 sm:p-8 min-h-screen bg-gray-50">
@@ -264,7 +345,7 @@ export default function List() {
           </button>
         </div>
 
-        {/* 🔹 필터 영역 - 디자인만 개선 */}
+        {/* 🔹 필터 영역 + 조건 초기화 버튼 */}
         <section className="mt-4 p-4 sm:p-5 bg-[#f0f4fc] border border-blue-100 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -275,9 +356,9 @@ export default function List() {
               </div>
             </div>
 
-            {/* 현재 활성화된 조건 표시 */}
-            <div className="hidden sm:flex items-center gap-2 text-xs">
-              <span className="px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-500">
+            {/* 현재 활성화된 조건 표시 + 초기화 버튼 */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="hidden sm:inline px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-500">
                 현재 조건:{" "}
                 <strong className="ml-1 text-gray-800">
                   {textKeyword
@@ -289,6 +370,13 @@ export default function List() {
                     : "전체"}
                 </strong>
               </span>
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="px-2.5 py-1 rounded-full border border-gray-300 bg-white text-[11px] font-medium text-gray-600 hover:bg-gray-100"
+              >
+                조건 초기화
+              </button>
             </div>
           </div>
 
@@ -320,9 +408,6 @@ export default function List() {
                   );
                 })}
               </div>
-              {/* <p className="mt-1 text-[11px] text-gray-400">
-                다시 클릭하면 선택이 해제돼요.
-              </p> */}
             </div>
 
             {/* 지역 필터 */}
@@ -354,9 +439,6 @@ export default function List() {
                   ▼
                 </div>
               </div>
-              {/* <p className="mt-1 text-[11px] text-gray-400">
-                지역을 바꾸면 다른 조건은 모두 해제돼요.
-              </p> */}
             </div>
           </div>
         </section>
@@ -382,7 +464,7 @@ export default function List() {
           {!loading && !error && jobs.length === 0 && (
             <div className="text-center p-12 text-gray-500 border border-gray-200 rounded-xl bg-gray-50">
               <p className="text-xl font-bold mb-2">검색 결과가 없습니다.</p>
-              <p>다른 키워드로 다시 검색해보세요.</p>
+              <p>다른 키워드 또는 조건으로 다시 검색해보세요.</p>
             </div>
           )}
 
