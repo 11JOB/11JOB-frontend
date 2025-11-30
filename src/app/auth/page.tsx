@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { join, sendEmail, checkEmail, login } from "@/api/user"; // API 호출 함수 추가
 import CommonModal from "@/components/common-modal"; // 공통 모달 컴포넌트 추가
 import CompleteModal from "@/components/complete-modal"; // CompleteModal 추가
+import CompleteLoginModal from "@/components/complete-login-modal";
 
 // -----------------------------------------------------------
 // 1. Component: Button (컴포넌트 폴더 내의 Button.jsx 역할)
@@ -445,7 +446,7 @@ const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
         message={modalMessage}
       />
       {isCompleteModalOpen && ( // 로그인 성공 시에만 CompleteModal 표시
-        <CompleteModal
+        <CompleteLoginModal
           message="로그인에 성공하였습니다!"
           route="/"
           pagemessage="메인 페이지로"

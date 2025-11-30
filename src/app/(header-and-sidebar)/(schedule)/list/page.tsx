@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Briefcase, MapPin } from "lucide-react";
 import { getJobContent } from "@/api/job";
-import { useRouter } from "next/navigation"; // 추가
+import { useRouter } from "next/navigation";
 
 interface Job {
   jobId: number;
@@ -20,11 +20,10 @@ interface Job {
 }
 
 const JobListItem: React.FC<{ item: Job }> = ({ item }) => {
-  const router = useRouter(); // 추가
+  const router = useRouter();
   const formattedDeadline = item.expirationDate.replace(/-/g, ".");
   const isExpired = new Date(item.expirationDate) < new Date();
 
-  // ✅ 세부 일정 등록 클릭 시 storage 저장 후 이동
   const goRegistration = () => {
     if (isExpired) return;
 
@@ -38,7 +37,7 @@ const JobListItem: React.FC<{ item: Job }> = ({ item }) => {
       })
     );
 
-    router.push("/registration"); // 수정
+    router.push("/registration");
   };
 
   return (
@@ -120,16 +119,24 @@ const JobListItem: React.FC<{ item: Job }> = ({ item }) => {
   );
 };
 
+const careerOptions = ["신입", "경력", "무관"];
+const locationOptions = [
+  "서울",
+  "경기",
+  "부산",
+  "대구",
+  "인천",
+  "광주",
+  "대전",
+  "울산",
+];
+
 export default function List() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentSearchTerm, setCurrentSearchTerm] = useState("");
+  const [textKeyword, setTextKeyword] = useState("");
 
-  // Redirect to /auth if no token
-  useEffect(() => {
-    if (typeof window !== "undefined" && !localStorage.getItem("accessToken")) {
-      window.location.href = "/auth";
-    }
-  }, []);
+  const [selectedCareer, setSelectedCareer] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,37 +144,45 @@ export default function List() {
 
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-
   const PAGE_GROUP_SIZE = 5;
 
-  const fetchJobs = useCallback(async (search: string, page: number) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const trimmed = search.trim();
-
-      const response = await getJobContent(
-        trimmed ? { keyword: trimmed, page } : { page }
-      );
-
-      setJobs(response.content);
-      setTotalPages(response.totalPages);
-    } catch (e) {
-      console.error(e);
-      setError("채용 공고 목록을 불러오는 데 실패했습니다.");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("accessToken")) {
+      window.location.href = "/auth";
     }
   }, []);
 
-  useEffect(() => {
-    fetchJobs(currentSearchTerm, currentPage);
-  }, [fetchJobs, currentSearchTerm, currentPage]);
-
   const handleSearch = () => {
+    const trimmed = searchTerm.trim();
+
+    setTextKeyword(trimmed);
+    setSelectedCareer(null);
+    setSelectedLocation(null);
     setCurrentPage(0);
-    setCurrentSearchTerm(searchTerm);
+  };
+
+  const handleCareerClick = (career: string) => {
+    setSelectedCareer((prev) => {
+      const next = prev === career ? null : career;
+
+      setTextKeyword("");
+      setSearchTerm("");
+      setSelectedLocation(null);
+
+      return next;
+    });
+    setCurrentPage(0);
+  };
+
+  const handleLocationChange = (value: string) => {
+    const nextLocation = value || null;
+
+    setSelectedLocation(nextLocation);
+    setTextKeyword("");
+    setSearchTerm("");
+    setSelectedCareer(null);
+
+    setCurrentPage(0);
   };
 
   const goToPage = (page: number) => {
@@ -175,10 +190,46 @@ export default function List() {
     setCurrentPage(page);
   };
 
-  // ⭐ 페이지 그룹 계산
   const currentGroup = Math.floor(currentPage / PAGE_GROUP_SIZE);
   const startPage = currentGroup * PAGE_GROUP_SIZE;
   const endPage = Math.min(startPage + PAGE_GROUP_SIZE, totalPages);
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        let keyword = "";
+
+        if (textKeyword) {
+          keyword = textKeyword;
+        } else if (selectedCareer) {
+          keyword = selectedCareer;
+        } else if (selectedLocation) {
+          keyword = selectedLocation;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const params: any = { page: currentPage };
+        if (keyword) {
+          params.keyword = keyword;
+        }
+
+        const response = await getJobContent(params);
+
+        setJobs(response.content);
+        setTotalPages(response.totalPages);
+      } catch (e) {
+        console.error(e);
+        setError("채용 공고 목록을 불러오는 데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, [textKeyword, selectedCareer, selectedLocation, currentPage]);
 
   return (
     <div className="flex-1 p-4 sm:p-8 min-h-screen bg-gray-50">
@@ -212,6 +263,103 @@ export default function List() {
             검색
           </button>
         </div>
+
+        {/* 🔹 필터 영역 - 디자인만 개선 */}
+        <section className="mt-4 p-4 sm:p-5 bg-[#f0f4fc] border border-blue-100 rounded-2xl shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div>
+                <h2 className="text-m font-semibold text-gray-800">
+                  [조건으로 검색]
+                </h2>
+              </div>
+            </div>
+
+            {/* 현재 활성화된 조건 표시 */}
+            <div className="hidden sm:flex items-center gap-2 text-xs">
+              <span className="px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-500">
+                현재 조건:{" "}
+                <strong className="ml-1 text-gray-800">
+                  {textKeyword
+                    ? `검색어 "${textKeyword}"`
+                    : selectedCareer
+                    ? `경력 ${selectedCareer}`
+                    : selectedLocation
+                    ? `지역 ${selectedLocation}`
+                    : "전체"}
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-2 grid gap-4 md:grid-cols-2">
+            {/* 경력 필터 */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Briefcase className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-semibold text-gray-800">
+                  경력 선택
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {careerOptions.map((career) => {
+                  const active = selectedCareer === career;
+                  return (
+                    <button
+                      key={career}
+                      type="button"
+                      onClick={() => handleCareerClick(career)}
+                      className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium border transition-all duration-150 flex items-center gap-1 ${
+                        active
+                          ? "bg-blue-500 text-white border-blue-600 shadow-sm"
+                          : "bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                      }`}
+                    >
+                      {career}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* <p className="mt-1 text-[11px] text-gray-400">
+                다시 클릭하면 선택이 해제돼요.
+              </p> */}
+            </div>
+
+            {/* 지역 필터 */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4 text-rose-500" />
+                <span className="text-sm font-semibold text-gray-800">
+                  지역 선택
+                </span>
+              </div>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+                  <MapPin className="w-4 h-4 text-rose-400" />
+                </div>
+                <select
+                  value={selectedLocation || ""}
+                  onChange={(e) => handleLocationChange(e.target.value)}
+                  className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 rounded-xl bg-white shadow-xs focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 appearance-none"
+                >
+                  <option value="">전체 지역</option>
+                  {locationOptions.map((location) => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
+                  ))}
+                </select>
+                {/* 커스텀 셀렉트 화살표 */}
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 text-xs">
+                  ▼
+                </div>
+              </div>
+              {/* <p className="mt-1 text-[11px] text-gray-400">
+                지역을 바꾸면 다른 조건은 모두 해제돼요.
+              </p> */}
+            </div>
+          </div>
+        </section>
 
         {/* 리스트 */}
         <div className="space-y-4 pt-4">

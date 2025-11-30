@@ -1,16 +1,9 @@
 "use client";
 import React from "react";
-// Next.js 라우터 대신 시뮬레이션을 위한 더미 함수를 사용합니다.
-// 실제 환경에서는 next/navigation에서 useRouter를 import하여 사용하십시오.
-// import { useRouter } from "next/navigation"; // 실제 Next.js 환경
-
-// useRouter 시뮬레이션
-const useDummyRouter = () => ({
-  push: (path: string) => console.log(`Navigating to: ${path}`),
-});
+import { useRouter } from "next/navigation";
 
 export default function AuthHeader() {
-  const router = useDummyRouter(); // 실제 환경에서는 useRouter();
+  const router = useRouter(); // 실제 환경에서는 useRouter();
 
   return (
     // 헤더 컨테이너: 약간의 그림자 추가, 고정 높이
