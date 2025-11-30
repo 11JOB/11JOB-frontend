@@ -131,7 +131,8 @@ const locationOptions = [
   "울산",
 ];
 
-export default function List() {
+// 🔹 실제 로직/상태/훅들은 여기로
+function ListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -313,213 +314,222 @@ export default function List() {
   ]);
 
   return (
+    <div className="flex-1 p-4 sm:p-8 min-h-screen bg-gray-50">
+      <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-xl h-full space-y-8 max-w-4xl mx-auto">
+        <header className="border-b border-gray-100 pb-4">
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            채용 공고 탐색
+          </h1>
+          <p className="text-base text-gray-500 mt-1">
+            최신 채용 공고를 검색하고, 나만의 취업 일정으로 등록하세요.
+          </p>
+        </header>
+
+        {/* 검색 바 */}
+        <div className="flex items-center border-2 border-blue-500 rounded-xl p-3 bg-white shadow-md focus-within:ring-4 focus-within:ring-blue-100 transition duration-200">
+          <Search className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
+          <input
+            type="text"
+            placeholder="기업명, 직무 등을 입력하여 검색하세요."
+            className="flex-1 outline-none text-lg text-gray-700 placeholder-gray-400"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSearch();
+            }}
+          />
+          <button
+            onClick={handleSearch}
+            className="px-4 py-1.5 bg-blue-500 text-white text-sm font-bold rounded-lg hover:bg-blue-600 transition duration-150 ml-2 flex-shrink-0"
+          >
+            검색
+          </button>
+        </div>
+
+        {/* 🔹 필터 영역 + 조건 초기화 버튼 */}
+        <section className="mt-4 p-4 sm:p-5 bg-[#f0f4fc] border border-blue-100 rounded-2xl shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div>
+                <h2 className="text-m font-semibold text-gray-800">
+                  [조건으로 검색]
+                </h2>
+              </div>
+            </div>
+
+            {/* 현재 활성화된 조건 표시 + 초기화 버튼 */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="hidden sm:inline px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-500">
+                현재 조건:{" "}
+                <strong className="ml-1 text-gray-800">
+                  {textKeyword
+                    ? `검색어 "${textKeyword}"`
+                    : selectedCareer
+                    ? `경력 ${selectedCareer}`
+                    : selectedLocation
+                    ? `지역 ${selectedLocation}`
+                    : "전체"}
+                </strong>
+              </span>
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="px-2.5 py-1 rounded-full border border-gray-300 bg-white text-[11px] font-medium text-gray-600 hover:bg-gray-100"
+              >
+                조건 초기화
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-2 grid gap-4 md:grid-cols-2">
+            {/* 경력 필터 */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Briefcase className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-semibold text-gray-800">
+                  경력 선택
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {careerOptions.map((career) => {
+                  const active = selectedCareer === career;
+                  return (
+                    <button
+                      key={career}
+                      type="button"
+                      onClick={() => handleCareerClick(career)}
+                      className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium border transition-all duration-150 flex items-center gap-1 ${
+                        active
+                          ? "bg-blue-500 text-white border-blue-600 shadow-sm"
+                          : "bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                      }`}
+                    >
+                      {career}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 지역 필터 */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4 text-rose-500" />
+                <span className="text-sm font-semibold text-gray-800">
+                  지역 선택
+                </span>
+              </div>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+                  <MapPin className="w-4 h-4 text-rose-400" />
+                </div>
+                <select
+                  value={selectedLocation || ""}
+                  onChange={(e) => handleLocationChange(e.target.value)}
+                  className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 rounded-xl bg-white shadow-xs focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 appearance-none"
+                >
+                  <option value="">전체 지역</option>
+                  {locationOptions.map((location) => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
+                  ))}
+                </select>
+                {/* 커스텀 셀렉트 화살표 */}
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 text-xs">
+                  ▼
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 리스트 */}
+        <div className="space-y-4 pt-4">
+          <div className="text-lg font-bold text-gray-700">
+            총 {loading ? "..." : jobs.length}건의 공고
+          </div>
+
+          {loading && (
+            <div className="text-center p-12 text-blue-500 font-medium">
+              채용 공고를 불러오는 중...
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-300 text-red-700 p-4 rounded-lg text-center">
+              {error}
+            </div>
+          )}
+
+          {!loading && !error && jobs.length === 0 && (
+            <div className="text-center p-12 text-gray-500 border border-gray-200 rounded-xl bg-gray-50">
+              <p className="text-xl font-bold mb-2">검색 결과가 없습니다.</p>
+              <p>다른 키워드 또는 조건으로 다시 검색해보세요.</p>
+            </div>
+          )}
+
+          {!loading &&
+            !error &&
+            jobs.length > 0 &&
+            jobs.map((item) => <JobListItem key={item.jobId} item={item} />)}
+        </div>
+
+        {/* 페이지네이션 (그룹) */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-10">
+            <button
+              onClick={() => goToPage(startPage - 1)}
+              disabled={currentGroup === 0}
+              className="px-3 py-1 border rounded disabled:opacity-40"
+            >
+              ‹ 이전
+            </button>
+
+            {Array.from(
+              { length: endPage - startPage },
+              (_, i) => startPage + i
+            ).map((page) => (
+              <button
+                key={page}
+                onClick={() => goToPage(page)}
+                className={`px-3 py-1 rounded border ${
+                  currentPage === page
+                    ? "bg-blue-500 text-white border-blue-600"
+                    : "bg-white hover:bg-gray-100"
+                }`}
+              >
+                {page + 1}
+              </button>
+            ))}
+
+            <button
+              onClick={() => goToPage(endPage)}
+              disabled={endPage >= totalPages}
+              className="px-3 py-1 border rounded disabled:opacity-40"
+            >
+              다음 ›
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 🔹 페이지 기본 컴포넌트: Suspense로 ListContent 감싸기
+export default function ListPage() {
+  return (
     <Suspense
       fallback={
-        <div className="text-center p-12 text-blue-500 font-medium">
-          로딩 중...
+        <div className="flex-1 p-8 min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center text-blue-500 font-medium">
+            로딩 중...
+          </div>
         </div>
       }
     >
-      <div className="flex-1 p-4 sm:p-8 min-h-screen bg-gray-50">
-        <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-xl h-full space-y-8 max-w-4xl mx-auto">
-          <header className="border-b border-gray-100 pb-4">
-            <h1 className="text-3xl font-extrabold text-gray-900">
-              채용 공고 탐색
-            </h1>
-            <p className="text-base text-gray-500 mt-1">
-              최신 채용 공고를 검색하고, 나만의 취업 일정으로 등록하세요.
-            </p>
-          </header>
-
-          {/* 검색 바 */}
-          <div className="flex items-center border-2 border-blue-500 rounded-xl p-3 bg-white shadow-md focus-within:ring-4 focus-within:ring-blue-100 transition duration-200">
-            <Search className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="기업명, 직무 등을 입력하여 검색하세요."
-              className="flex-1 outline-none text-lg text-gray-700 placeholder-gray-400"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSearch();
-              }}
-            />
-            <button
-              onClick={handleSearch}
-              className="px-4 py-1.5 bg-blue-500 text-white text-sm font-bold rounded-lg hover:bg-blue-600 transition duration-150 ml-2 flex-shrink-0"
-            >
-              검색
-            </button>
-          </div>
-
-          {/* 🔹 필터 영역 + 조건 초기화 버튼 */}
-          <section className="mt-4 p-4 sm:p-5 bg-[#f0f4fc] border border-blue-100 rounded-2xl shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div>
-                  <h2 className="text-m font-semibold text-gray-800">
-                    [조건으로 검색]
-                  </h2>
-                </div>
-              </div>
-
-              {/* 현재 활성화된 조건 표시 + 초기화 버튼 */}
-              <div className="flex items-center gap-2 text-xs">
-                <span className="hidden sm:inline px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-500">
-                  현재 조건:{" "}
-                  <strong className="ml-1 text-gray-800">
-                    {textKeyword
-                      ? `검색어 "${textKeyword}"`
-                      : selectedCareer
-                      ? `경력 ${selectedCareer}`
-                      : selectedLocation
-                      ? `지역 ${selectedLocation}`
-                      : "전체"}
-                  </strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleResetFilters}
-                  className="px-2.5 py-1 rounded-full border border-gray-300 bg-white text-[11px] font-medium text-gray-600 hover:bg-gray-100"
-                >
-                  조건 초기화
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-2 grid gap-4 md:grid-cols-2">
-              {/* 경력 필터 */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Briefcase className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm font-semibold text-gray-800">
-                    경력 선택
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {careerOptions.map((career) => {
-                    const active = selectedCareer === career;
-                    return (
-                      <button
-                        key={career}
-                        type="button"
-                        onClick={() => handleCareerClick(career)}
-                        className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium border transition-all duration-150 flex items-center gap-1 ${
-                          active
-                            ? "bg-blue-500 text-white border-blue-600 shadow-sm"
-                            : "bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50"
-                        }`}
-                      >
-                        {career}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 지역 필터 */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="w-4 h-4 text-rose-500" />
-                  <span className="text-sm font-semibold text-gray-800">
-                    지역 선택
-                  </span>
-                </div>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-                    <MapPin className="w-4 h-4 text-rose-400" />
-                  </div>
-                  <select
-                    value={selectedLocation || ""}
-                    onChange={(e) => handleLocationChange(e.target.value)}
-                    className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 rounded-xl bg-white shadow-xs focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 appearance-none"
-                  >
-                    <option value="">전체 지역</option>
-                    {locationOptions.map((location) => (
-                      <option key={location} value={location}>
-                        {location}
-                      </option>
-                    ))}
-                  </select>
-                  {/* 커스텀 셀렉트 화살표 */}
-                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 text-xs">
-                    ▼
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* 리스트 */}
-          <div className="space-y-4 pt-4">
-            <div className="text-lg font-bold text-gray-700">
-              총 {loading ? "..." : jobs.length}건의 공고
-            </div>
-
-            {loading && (
-              <div className="text-center p-12 text-blue-500 font-medium">
-                채용 공고를 불러오는 중...
-              </div>
-            )}
-
-            {error && (
-              <div className="bg-red-50 border border-red-300 text-red-700 p-4 rounded-lg text-center">
-                {error}
-              </div>
-            )}
-
-            {!loading && !error && jobs.length === 0 && (
-              <div className="text-center p-12 text-gray-500 border border-gray-200 rounded-xl bg-gray-50">
-                <p className="text-xl font-bold mb-2">검색 결과가 없습니다.</p>
-                <p>다른 키워드 또는 조건으로 다시 검색해보세요.</p>
-              </div>
-            )}
-
-            {!loading &&
-              !error &&
-              jobs.length > 0 &&
-              jobs.map((item) => <JobListItem key={item.jobId} item={item} />)}
-          </div>
-
-          {/* 페이지네이션 (그룹) */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-10">
-              <button
-                onClick={() => goToPage(startPage - 1)}
-                disabled={currentGroup === 0}
-                className="px-3 py-1 border rounded disabled:opacity-40"
-              >
-                ‹ 이전
-              </button>
-
-              {Array.from(
-                { length: endPage - startPage },
-                (_, i) => startPage + i
-              ).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => goToPage(page)}
-                  className={`px-3 py-1 rounded border ${
-                    currentPage === page
-                      ? "bg-blue-500 text-white border-blue-600"
-                      : "bg-white hover:bg-gray-100"
-                  }`}
-                >
-                  {page + 1}
-                </button>
-              ))}
-
-              <button
-                onClick={() => goToPage(endPage)}
-                disabled={endPage >= totalPages}
-                className="px-3 py-1 border rounded disabled:opacity-40"
-              >
-                다음 ›
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      <ListContent />
     </Suspense>
   );
 }
