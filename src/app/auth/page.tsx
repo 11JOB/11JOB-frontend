@@ -3,13 +3,13 @@
 import React, { useMemo, useState } from "react";
 import { Eye, EyeOff, ChevronLeft } from "lucide-react";
 import clsx from "clsx";
-import { join, sendEmail, checkEmail, login } from "@/api/user"; // API 호출 함수 추가
-import CommonModal from "@/components/common-modal"; // 공통 모달 컴포넌트 추가
-import CompleteModal from "@/components/complete-modal"; // CompleteModal 추가
+import { join, sendEmail, checkEmail, login } from "@/api/user";
+import CommonModal from "@/components/common-modal";
+import CompleteModal from "@/components/complete-modal";
 import CompleteLoginModal from "@/components/complete-login-modal";
 
 // -----------------------------------------------------------
-// 1. Component: Button (컴포넌트 폴더 내의 Button.jsx 역할)
+// 1. Component: Button
 // -----------------------------------------------------------
 
 interface ButtonProps {
@@ -46,7 +46,7 @@ const Button: React.FC<ButtonProps> = ({
 };
 
 // -----------------------------------------------------------
-// 2. Component: Input (컴포넌트 폴더 내의 input.jsx 역할)
+// 2. Component: Input
 // -----------------------------------------------------------
 
 interface InputProps {
@@ -88,7 +88,7 @@ const Input: React.FC<InputProps> = ({
 };
 
 // -----------------------------------------------------------
-// 3. Component: PasswordInput (컴포넌트 폴더 내의 password-input.jsx 역할)
+// 3. Component: PasswordInput
 // -----------------------------------------------------------
 
 interface PasswordInputProps {
@@ -157,21 +157,21 @@ const ViewHeader: React.FC<{
 );
 
 // -----------------------------------------------------------
-// 5. Page: SignUpPage (사용자 요청 컴포넌트)
+// 5. Page: SignUpPage
 // -----------------------------------------------------------
 
 const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [email, setEmail] = useState("");
-  const [authNum, setAuthNum] = useState(""); // 인증번호 필드 이름 변경
+  const [authNum, setAuthNum] = useState("");
   const [pw, setPw] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
-  const [name, setName] = useState(""); // 이름 추가
+  const [name, setName] = useState("");
   const [agree, setAgree] = useState(false);
   const [isCodeSent, setIsCodeSent] = useState(false);
-  const [isCodeVerified, setIsCodeVerified] = useState(false); // 인증번호 확인 상태 추가
+  const [isCodeVerified, setIsCodeVerified] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [, setIsCompleteModalOpen] = useState(false); // CompleteModal 상태 추가
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
 
   const showModal = (message: string) => {
     setModalMessage(message);
@@ -203,7 +203,7 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     [email, isCodeVerified, pwMatch, name, agree]
   );
 
-  // 인증번호 발송 핸들러
+  // 인증번호 발송
   const handleSendCode = async () => {
     if (!canSendCode) return;
     try {
@@ -216,7 +216,7 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
   };
 
-  // 인증번호 확인 핸들러
+  // 인증번호 확인
   const handleVerifyCode = async () => {
     if (!canVerifyCode) return;
     try {
@@ -229,13 +229,13 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
   };
 
-  // 회원가입 핸들러
+  // 회원가입
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     try {
       await join({ email, password: pw, name });
-      setIsCompleteModalOpen(true); // 회원가입 완료 모달 열기
+      setIsCompleteModalOpen(true);
     } catch (error) {
       console.error("Sign up failed:", error);
       showModal("회원가입에 실패했습니다. 다시 시도해주세요.");
@@ -249,12 +249,14 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         onClose={() => setIsModalOpen(false)}
         message={modalMessage}
       />
-      <CompleteModal
-        message="회원가입이 성공적으로 완료되었습니다!"
-        route="/auth"
-        pagemessage="로그인 페이지로"
-        onClose={() => setIsCompleteModalOpen(false)}
-      />
+      {isCompleteModalOpen && (
+        <CompleteModal
+          message="회원가입이 성공적으로 완료되었습니다!"
+          route="/auth"
+          pagemessage="로그인 페이지로"
+          onClose={() => setIsCompleteModalOpen(false)}
+        />
+      )}
       <div className="rounded-2xl bg-white shadow-xl ring-1 ring-gray-100 p-8 w-full transition-opacity duration-300">
         <ViewHeader title="회원가입" onBack={onBack} showBack={true} />
 
@@ -393,7 +395,7 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 };
 
 // -----------------------------------------------------------
-// 7. Page: SignInPage (로그인 페이지)
+// 7. Page: SignInPage
 // -----------------------------------------------------------
 
 const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
@@ -403,7 +405,7 @@ const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
   const [pw, setPw] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false); // CompleteModal 상태 추가
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
 
   const showModal = (message: string) => {
     setModalMessage(message);
@@ -424,15 +426,14 @@ const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
       const { accessToken, refreshToken } = await login({
         email,
         password: pw,
-      }); // 로그인 API 호출
+      });
       console.log("Login successful. Tokens:", { accessToken, refreshToken });
 
-      // 토큰과 이메일을 로컬 스토리지에 저장
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("userEmail", email); // 이메일 저장
+      localStorage.setItem("userEmail", email);
 
-      setIsCompleteModalOpen(true); // 로그인 성공 모달 열기
+      setIsCompleteModalOpen(true);
     } catch (error) {
       console.error("Login failed:", error);
       showModal("로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.");
@@ -446,21 +447,16 @@ const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
         onClose={() => setIsModalOpen(false)}
         message={modalMessage}
       />
-      {isCompleteModalOpen && ( // 로그인 성공 시에만 CompleteModal 표시
+      {isCompleteModalOpen && (
         <CompleteLoginModal
           message="로그인에 성공하였습니다!"
           route="/"
           pagemessage="메인 페이지로"
           onClose={() => setIsCompleteModalOpen(false)}
-          //   isOpen={isCompleteModalOpen}
         />
       )}
       <div className="rounded-2xl bg-white shadow-xl ring-1 ring-gray-100 p-8 w-full transition-opacity duration-300">
-        <ViewHeader
-          title="로그인"
-          onBack={() => {}} // 로그인 뷰에서는 뒤로가기 버튼 없음
-          showBack={false}
-        />
+        <ViewHeader title="로그인" onBack={() => {}} showBack={false} />
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 아이디(이메일) */}
@@ -497,11 +493,11 @@ const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
           </Button>
         </form>
 
-        {/* 회원가입 / 비밀번호 찾기 링크 */}
+        {/* 회원가입 링크 */}
         <div className="mt-6 text-center text-sm space-x-2">
           <span
             className="text-gray-600 hover:text-black cursor-pointer transition duration-150 font-medium"
-            onClick={() => handleNavigation("signup")} // 뷰 전환: 회원가입 (라우팅 시뮬레이션)
+            onClick={() => handleNavigation("signup")}
           >
             회원가입
           </span>
@@ -512,28 +508,22 @@ const SignInPage: React.FC<{ handleNavigation: (view: AuthView) => void }> = ({
 };
 
 // -----------------------------------------------------------
-// 8. Main App Component (라우팅 역할)
+// 8. Main App Component
 // -----------------------------------------------------------
 
 export default function App() {
-  // 뷰 상태: URL 경로를 시뮬레이션합니다.
   const [currentView, setCurrentView] = useState<AuthView>("signin");
 
-  // 라우팅 핸들러
   const handleNavigation = (view: AuthView) => {
     setCurrentView(view);
   };
 
-  // 뷰 렌더링
   const renderContent = () => {
     switch (currentView) {
       case "signin":
         return <SignInPage handleNavigation={handleNavigation} />;
-
       case "signup":
-        // SignUpPage 컴포넌트를 렌더링하고, 뒤로가기 시 'signin'으로 이동
         return <SignUpPage onBack={() => handleNavigation("signin")} />;
-
       default:
         return null;
     }
@@ -543,7 +533,6 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 font-sans">
       <main className="px-4">
         <div className="mx-auto max-w-md">
-          {/* 중앙 정렬 */}
           <div className="flex flex-col justify-center min-h-screen py-8 md:py-12">
             {renderContent()}
           </div>

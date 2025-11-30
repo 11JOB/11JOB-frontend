@@ -2,16 +2,18 @@
 
 import React from "react";
 
-interface CommonModalProps {
+interface ConfirmCancelModalProps {
   isOpen: boolean;
-  message: React.ReactNode; // string -> React.ReactNode로 변경
-  onClose: () => void;
+  message: React.ReactNode;
+  onConfirm: () => void;
+  onCancel: () => void;
 }
 
-const CommonModal: React.FC<CommonModalProps> = ({
+const ConfirmCancelModal: React.FC<ConfirmCancelModalProps> = ({
   isOpen,
   message,
-  onClose,
+  onConfirm,
+  onCancel,
 }) => {
   if (!isOpen) return null;
 
@@ -22,12 +24,15 @@ const CommonModal: React.FC<CommonModalProps> = ({
         <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
           {message}
         </p>
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex justify-end space-x-2">
+          <button className="px-4 py-2 bg-gray-300 rounded" onClick={onCancel}>
+            취소
+          </button>
           <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-gray-600 text-white font-semibold text-sm shadow-md hover:bg-gray-700 active:scale-95 transition-all"
+            className="px-4 py-2 bg-red-600 text-white rounded"
+            onClick={onConfirm}
           >
-            닫기
+            확인
           </button>
         </div>
       </div>
@@ -35,4 +40,4 @@ const CommonModal: React.FC<CommonModalProps> = ({
   );
 };
 
-export default CommonModal;
+export default ConfirmCancelModal;

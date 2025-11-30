@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { changePassword, deleteUser, logout, getUserName } from "@/api/user";
 import CommonModal from "@/components/common-modal"; // 공통 모달 컴포넌트 추가
+import ConfirmCancelModal from "@/components/confirm-cancel-modal"; // ConfirmCancelModal 추가
 
 // -----------------------------------------------------------------------------
 // 마이페이지 컴포넌트
@@ -36,12 +37,14 @@ export default function MyPage() {
   // 회원 탈퇴 상태
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isConfirmCancelModalOpen, setIsConfirmCancelModalOpen] =
+    useState(false); // ConfirmCancelModal 상태 추가
 
   // 로그아웃 상태
   const [logoutLoading, setLogoutLoading] = useState(false);
 
   // 모달 상태
-  const [modalMessage, setModalMessage] = useState("");
+  const [modalMessage, setModalMessage] = useState<React.ReactNode>(""); // 타입 변경
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const showModal = (message: string) => {
@@ -145,31 +148,27 @@ export default function MyPage() {
   // ---------------------------------------------------------------------------
   // ------------------------------ 회원 탈퇴 ------------------------------
   const handleDeleteUser = async () => {
-    console.log("⚡ [handleDeleteUser] 실행됨");
-    console.log("입력된 비밀번호:", deletePassword);
-
     if (!deletePassword) {
       showModal("회원 탈퇴를 위해 비밀번호를 입력해주세요.");
       return;
     }
 
-    const ok = confirm(
-      "정말로 회원 탈퇴를 진행하시겠습니까?\n\n계정과 관련된 데이터가 삭제될 수 있습니다."
-    );
-    if (!ok) return;
+    setIsConfirmCancelModalOpen(true); // ConfirmCancelModal 열기
+  };
 
+  const confirmDeleteUser = async () => {
     try {
       setDeleteLoading(true);
-      console.log("📤 [handleDeleteUser] deleteUser 요청 보냄");
-
       const res = await deleteUser({ password: deletePassword });
-
-      console.log("📥 [handleDeleteUser] deleteUser 응답:", res);
 
       if (!res.success) {
         showModal(res.message || "회원 탈퇴 실패");
         return;
       }
+
+      // 회원 탈퇴 성공 시 로컬스토리지에 저장된 토큰 삭제
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
 
       showModal(res.message || "회원 탈퇴 완료");
 
@@ -180,6 +179,7 @@ export default function MyPage() {
       showModal("회원 탈퇴 실패. 비밀번호를 다시 확인해주세요.");
     } finally {
       setDeleteLoading(false);
+      setIsConfirmCancelModalOpen(false); // ConfirmCancelModal 닫기
     }
   };
 
@@ -194,7 +194,18 @@ export default function MyPage() {
       <CommonModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        message={modalMessage}
+        message={modalMessage} // React.ReactNode 타입으로 전달 가능
+      />
+      <ConfirmCancelModal
+        isOpen={isConfirmCancelModalOpen}
+        message={
+          <>
+            <p>정말로 회원 탈퇴를 진행하시겠습니까?</p>
+            <p>계정과 관련된 데이터가 삭제될 수 있습니다.</p>
+          </>
+        }
+        onConfirm={confirmDeleteUser} // 확인 버튼 핸들러
+        onCancel={() => setIsConfirmCancelModalOpen(false)} // 취소 버튼 핸들러
       />
       <div className="flex-1 min-h-screen bg-gray-50 font-sans">
         <div className="max-w-2xl mx-auto py-10 px-4 sm:px-6 lg:px-0 space-y-8">

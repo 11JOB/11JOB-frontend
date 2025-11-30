@@ -5,14 +5,9 @@ import React from "react";
 interface CommonModalProps {
   isOpen: boolean;
   message: React.ReactNode; // string -> React.ReactNode로 변경
-  onClose: () => void;
 }
 
-const CommonModal: React.FC<CommonModalProps> = ({
-  isOpen,
-  message,
-  onClose,
-}) => {
+const CommonCancelModal: React.FC<CommonModalProps> = ({ isOpen, message }) => {
   if (!isOpen) return null;
 
   return (
@@ -22,17 +17,10 @@ const CommonModal: React.FC<CommonModalProps> = ({
         <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
           {message}
         </p>
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-gray-600 text-white font-semibold text-sm shadow-md hover:bg-gray-700 active:scale-95 transition-all"
-          >
-            닫기
-          </button>
-        </div>
+        <div className="mt-6 flex justify-end"></div>
       </div>
     </div>
   );
 };
 
-export default CommonModal;
+export default CommonCancelModal;

@@ -17,11 +17,22 @@ export default function CompleteModal({
 }: CompleteModalProps) {
   const router = useRouter();
 
+  const handleRouteClick = () => {
+    // 먼저 모달 닫기
+    if (onClose) {
+      onClose();
+    }
+    if (route) {
+      router.push(route);
+      router.refresh(); // 페이지 이동 후 서버 상태 새로고침
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       {/* Modal Box */}
       <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-fadeIn scale-100">
-        <h2 className="text-xl font-bold text-gray-900 mb-3">저장 완료!</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-3">알림</h2>
 
         <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
           {message}
@@ -31,7 +42,7 @@ export default function CompleteModal({
         <div className="mt-6 flex justify-end">
           {route ? (
             <button
-              onClick={() => router.push(route)}
+              onClick={handleRouteClick}
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold text-sm shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
             >
               {pagemessage} 이동하기
