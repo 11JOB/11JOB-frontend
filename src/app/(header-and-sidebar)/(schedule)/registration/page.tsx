@@ -451,6 +451,7 @@ export default function ScheduleRegistration() {
 
               <p className="mb-4">
                 이력서, 포트폴리오 등 관련 파일을 선택하세요.
+                <br />한 파일당 10MB이하, 전체 50MB이하로 업로드 가능합니다.
               </p>
 
               <label

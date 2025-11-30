@@ -320,7 +320,7 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           {/* 비밀번호 */}
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-700">
-              비밀번호 (8자 이상)
+              비밀번호 (8자 이상, 영문, 숫자, 특수기호 포함)
             </label>
             <PasswordInput
               value={pw}
@@ -329,7 +329,8 @@ const SignUpPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             />
             {pw.length > 0 && pw.length < 8 && (
               <p className="mt-1 text-xs text-red-500">
-                비밀번호는 최소 8자 이상이어야 합니다.
+                비밀번호는 최소 8자 이상의 영문, 숫자, 특수기호 포함이어야
+                합니다.
               </p>
             )}
           </div>
