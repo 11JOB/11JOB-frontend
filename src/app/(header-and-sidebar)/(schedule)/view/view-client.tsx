@@ -746,7 +746,7 @@ export default function JobSchedulerPage() {
   };
 
   return (
-    <div className="flex-1 p-4 sm:p-8 min-h-screen bg-gray-50">
+    <div className="flex-1 p-4 sm:p-8 min-h-screen">
       <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-xl h-full max-w-4xl mx-auto space-y-6">
         {/* 헤더 */}
         <header className="border-b border-gray-100 pb-4">

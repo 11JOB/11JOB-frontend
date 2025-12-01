@@ -289,7 +289,7 @@ const FormSection: React.FC<FormSectionProps> = ({
     ))}
 
     {list.length === 0 && (
-      <div className="text-center text-gray-500 py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+      <div className="text-center text-gray-500 py-4 rounded-lg border border-dashed border-gray-200">
         등록된 항목이 없습니다. &apos;항목 추가&lsquo; 버튼을 눌러주세요.
       </div>
     )}
@@ -527,7 +527,7 @@ export default function PortfolioRegistration() {
   };
 
   return (
-    <div className="p-4 sm:p-8 bg-slate-50 min-h-screen font-sans">
+    <div className="p-4 sm:p-8 min-h-screen font-sans">
       <div className="max-w-4xl mx-auto">
         <div className="mb-10 p-6 bg-white rounded-xl shadow-md border-t-4 border-indigo-600">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-1 tracking-tight">

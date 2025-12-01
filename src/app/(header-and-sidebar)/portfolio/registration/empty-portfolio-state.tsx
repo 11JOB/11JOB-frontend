@@ -7,7 +7,7 @@ import React from "react";
 
 const EmptyPortfolioState: React.FC = () => {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-6 bg-slate-50 rounded-2xl border border-dashed border-indigo-200 shadow-sm max-w-md w-full">
+    <div className="flex flex-col items-center justify-center py-16 px-6 rounded-2xl border border-dashed border-indigo-200 shadow-sm max-w-md w-full">
       <p className="text-2xl font-bold text-slate-900 mb-3 text-center">
         포트폴리오를 작성해보세요!
       </p>

@@ -312,7 +312,7 @@ export default function PortfolioView() {
   // 2) 포트폴리오가 아예 없을 때 (백엔드 404)
   if (status === "empty") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+      <div className="flex items-center justify-center min-h-screen ">
         <EmptyPortfolioState />
       </div>
     );
@@ -321,7 +321,7 @@ export default function PortfolioView() {
   // 3) 기타 에러
   if (status === "error" && !portfolio) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 gap-4">
+      <div className="flex flex-col items-center justify-center min-h-screen  gap-4">
         <p className="text-sm text-gray-500">
           포트폴리오를 불러오는 중 오류가 발생했습니다.
         </p>
@@ -342,7 +342,7 @@ export default function PortfolioView() {
   // ================= 실제 뷰 렌더 =================
   return (
     <>
-      <div className="p-4 md:p-8 bg-gray-100 min-h-screen font-sans">
+      <div className="p-4 md:p-8 min-h-screen font-sans">
         <div className="max-w-6xl mx-auto">
           {/* 헤더 */}
           <div className="mb-6">

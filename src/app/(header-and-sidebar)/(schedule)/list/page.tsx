@@ -314,7 +314,7 @@ function ListContent() {
   ]);
 
   return (
-    <div className="flex-1 p-4 sm:p-8 min-h-screen bg-gray-50">
+    <div className="flex-1 p-4 sm:p-8 min-h-screen ">
       <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-xl h-full space-y-8 max-w-4xl mx-auto">
         <header className="border-b border-gray-100 pb-4">
           <h1 className="text-3xl font-extrabold text-gray-900">

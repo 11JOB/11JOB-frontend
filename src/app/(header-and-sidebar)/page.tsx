@@ -252,7 +252,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen p-4 sm:p-8 bg-gray-50 font-sans">
+    <div className="min-h-screen p-4 sm:p-8 font-sans">
       <div className="bg-white p-6 sm:p-10 rounded-xl shadow-2xl h-full max-w-6xl mx-auto">
         <header className="mb-8 pb-4 border-b border-gray-200">
           <h1 className="text-4xl font-extrabold text-indigo-700 tracking-tight">

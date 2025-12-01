@@ -210,7 +210,7 @@ export default function MyPage() {
         onConfirm={confirmDeleteUser} // 확인 버튼 핸들러
         onCancel={() => setIsConfirmCancelModalOpen(false)} // 취소 버튼 핸들러
       />
-      <div className="flex-1 min-h-screen bg-gray-50 font-sans">
+      <div className="flex-1 min-h-screen font-sans">
         <div className="max-w-2xl mx-auto py-10 px-4 sm:px-6 lg:px-0 space-y-8">
           {/* 헤더 */}
           <header className="border-b pb-4">
