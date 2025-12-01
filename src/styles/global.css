@@ -4,7 +4,7 @@
 @import "./utilities.css"; */
 
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
-
+@import url("http://fonts.googleapis.com/earlyaccess/nanumgothic.css");
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -120,7 +120,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Pretendard Variable;
+  font-family: "Noto Sans KR", Pretendard Variable;
 }
 
 button {
